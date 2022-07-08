@@ -383,9 +383,9 @@ struct ParametrizedCentroidalMPC::Impl
         double delta_y  = (y_max - y_min)/2;
         double delta_y0 = (y_min + y_max)/2;
 
-        force(0,0) = staticFrictionCoefficient*tanh(xi(0))*(exp(xi(2)) + fZmin)/sqrt(1+(tanh(xi(1)) * tanh(xi(1)))); 
-        force(1,0) = staticFrictionCoefficient*tanh(xi(1))*(exp(xi(2)) + fZmin)/sqrt(1+(tanh(xi(0)) * tanh(xi(0))));
-        force(2,0) = exp(xi(2)) + fZmin;
+        force(0,0) = staticFrictionCoefficient*tanh(xi(0,0))*(exp(xi(2,0)) + fZmin)/sqrt(1+(tanh(xi(1,0)) * tanh(xi(1)))); 
+        force(1,0) = staticFrictionCoefficient*tanh(xi(1,0))*(exp(xi(2,0)) + fZmin)/sqrt(1+(tanh(xi(0,0)) * tanh(xi(0))));
+        force(2,0) = exp(xi(2,0)) + fZmin;
 
         return force;
         /*
@@ -449,7 +449,7 @@ struct ParametrizedCentroidalMPC::Impl
 
         // we assume mass equal to 1
         constexpr double mass = 1;
-        casadi::MX force;
+        
 
         casadi::MX com = casadi::MX::sym("com", 3);
         casadi::MX dcom = casadi::MX::sym("dcom", 3);
@@ -485,7 +485,7 @@ struct ParametrizedCentroidalMPC::Impl
                 //ddcom += contact.isEnable/mass * corner.force;
                 //instead call the parametrization function here
                 
-                force = Parametrization(this->parameterizationConstants.staticFrictionCoefficient, 
+                casadi::MX force = Parametrization(this->parameterizationConstants.staticFrictionCoefficient, 
                                                    this->parameterizationConstants.staticFrictionCoefficient,
                                                    contactBoundingBoxes[key].lowerLimit(0), contactBoundingBoxes[key].upperLimit(0),
                                                    contactBoundingBoxes[key].lowerLimit(1), contactBoundingBoxes[key].upperLimit(1),
@@ -518,17 +518,13 @@ struct ParametrizedCentroidalMPC::Impl
                           + (1 - contact.isEnable) * contact.linearVelocity
                                 * this->optiSettings.samplingTime);
             outputName.push_back(key);
-            log()->info("{} the size of the output vector is {}.",
-                     errorPrefix, outputName.size());
         }
         
-
         return casadi::Function("centroidal_dynamics",
                                 input,
                                 rhs,
                                 extractVariablesName(input),
                                 outputName);
-
     }
 
     casadi::Function contactPositionError()
@@ -693,7 +689,6 @@ struct ParametrizedCentroidalMPC::Impl
         auto& dcom = this->optiVariables.dcom;
         auto& angularMomentum = this->optiVariables.angularMomentum;
         auto& externalWrench = this->optiVariables.externalWrench;
-        casadi::MX force;
 
         // prepare the input of the ode
         std::vector<casadi::MX> odeInput;
@@ -710,13 +705,14 @@ struct ParametrizedCentroidalMPC::Impl
 
             for(const auto& corner : contact.corners)
             {
+                /*
                 force = Parametrization(this->parameterizationConstants.staticFrictionCoefficient, 
                                                    this->parameterizationConstants.staticFrictionCoefficient,
                                                    contactBoundingBoxes[key].lowerLimit(0), contactBoundingBoxes[key].upperLimit(0),
                                                    contactBoundingBoxes[key].lowerLimit(1), contactBoundingBoxes[key].upperLimit(1),
                                                    this->parameterizationConstants.fZmin, corner.xi_parameter);
-                
-                odeInput.push_back(force);
+                */
+                odeInput.push_back(corner.xi_parameter);
             }
         }
         // set the initial values
@@ -734,11 +730,9 @@ struct ParametrizedCentroidalMPC::Impl
         // map computes the multiple shooting method
         auto dynamics = this->ode().map(this->optiSettings.horizon);
         auto fullTrajectory = dynamics(odeInput);
-
         this->opti.subject_to(extractFutureValuesFromState(com) == fullTrajectory[0]);
         this->opti.subject_to(extractFutureValuesFromState(dcom) == fullTrajectory[1]);
         this->opti.subject_to(extractFutureValuesFromState(angularMomentum) == fullTrajectory[2]);
-
         // footstep dynamics
         std::size_t contactIndex = 0;
         for (const auto& [key, contact] : this->optiVariables.parametrizedContacts)
@@ -831,6 +825,7 @@ struct ParametrizedCentroidalMPC::Impl
                     * casadi::MX::sumsqr(contact.nominalPosition - contact.position);
 
             
+            
             averageForce = casadi::MX::vertcat(
                 {contact.isEnable * contact.corners[0].xi_parameter(0, Sl()) / contact.corners.size(),
                  contact.isEnable * contact.corners[0].xi_parameter(1, Sl()) / contact.corners.size(),
@@ -847,7 +842,7 @@ struct ParametrizedCentroidalMPC::Impl
             for (const auto& corner : contact.corners)
             {
                 
-                force = Parametrization(this->parameterizationConstants.staticFrictionCoefficient, 
+                casadi::MX force = Parametrization(this->parameterizationConstants.staticFrictionCoefficient, 
                                                    this->parameterizationConstants.staticFrictionCoefficient,
                                                    contactBoundingBoxes[key].lowerLimit(0), contactBoundingBoxes[key].upperLimit(0),
                                                    contactBoundingBoxes[key].lowerLimit(1), contactBoundingBoxes[key].upperLimit(1),
@@ -855,6 +850,8 @@ struct ParametrizedCentroidalMPC::Impl
 
                 auto forceRateOfChange = casadi::MX::diff(force.T()).T();
 
+                log()->info("{} Force rate of change is computed as : -----------------.",  errorPrefix);
+                std::cerr << "------------------_>>> "  << forceRateOfChange << std::endl;
                 cost += 10 * casadi::MX::sumsqr(force - averageForce);
 
                 cost += this->weights.forceRateOfChange(0)
@@ -863,8 +860,12 @@ struct ParametrizedCentroidalMPC::Impl
                         * casadi::MX::sumsqr(forceRateOfChange(1, Sl()));
                 cost += this->weights.forceRateOfChange(2)
                         * casadi::MX::sumsqr(forceRateOfChange(2, Sl()));
+                log()->info("{} I am here -------------------------------.",  errorPrefix);
+        
             }
         }
+
+
 
         this->opti.minimize(cost);
 
