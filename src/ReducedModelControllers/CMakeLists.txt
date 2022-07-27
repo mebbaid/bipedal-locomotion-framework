@@ -9,8 +9,8 @@
 
   add_bipedal_locomotion_library(
     NAME                   ReducedModelControllers 
-    PUBLIC_HEADERS         ${H_PREFIX}/CentroidalMPC.h 
-    SOURCES                src/CentroidalMPC.cpp 
+    PUBLIC_HEADERS         ${H_PREFIX}/ParametrizedCentroidalMPC.h 
+    SOURCES                src/ParameterizedCentroidalMPC.cpp 
     PUBLIC_LINK_LIBRARIES  Eigen3::Eigen BipedalLocomotion::ParametersHandler BipedalLocomotion::System BipedalLocomotion::Contacts
     PRIVATE_LINK_LIBRARIES casadi BipedalLocomotion::Math BipedalLocomotion::TextLogging
     SUBDIRECTORIES        tests)
