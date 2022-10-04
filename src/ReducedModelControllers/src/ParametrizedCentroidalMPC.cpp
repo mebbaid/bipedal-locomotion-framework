@@ -208,6 +208,7 @@ struct ParametrizedCentroidalMPC::Impl
         Eigen::Vector3d forceRateOfChange;
         double angularMomentum;
         double forceRegularization;
+        double parameterRegularization;
     };
     Weights weights; /**< Settings */
 
@@ -358,6 +359,7 @@ struct ParametrizedCentroidalMPC::Impl
         ok = ok && ptr->getParameter("force_rate_of_change_weight", this->weights.forceRateOfChange);
         ok = ok && ptr->getParameter("angular_momentum_weight", this->weights.angularMomentum);
         ok = ok && ptr->getParameter("average_force_weight", this->weights.forceRegularization);
+        ok = ok && ptr->getParameter("parameter_regularization_weight", this->weights.parameterRegularization);
         ok = ok && ptr->getParameter("static_friction_coefficient", this->parameterizationConstants.staticFrictionCoefficient);
         this->parameterizationConstants.torsionalFrictionCoefficient = this->parameterizationConstants.staticFrictionCoefficient;
         //ok = ok && ptr->getParameter("static_friction_coefficient", this->parameterizationConstants.torsionalFrictionCoefficient);
@@ -386,14 +388,25 @@ struct ParametrizedCentroidalMPC::Impl
         using Sl = casadi::Slice;
         casadi::MX  force(xi.rows(), xi.columns());
         
+        // uncomment to use approximate parameterization 
+        
         double delta_x = (x_max - x_min)/2;
         double delta_x0 = -(x_min + x_max)/2;
         double delta_y  = (y_max - y_min)/2;
         double delta_y0 = (y_min + y_max)/2;
 
+        
         force(0, Sl()) = staticFrictionCoefficient*casadi::MX::tanh(xi(0, Sl()))*(casadi::MX::exp(xi(2, Sl())) + fZmin)/casadi::MX::sqrt(1+(casadi::MX::tanh(xi(1, Sl())) * casadi::MX::tanh(xi(1, Sl())))); 
         force(1, Sl()) = staticFrictionCoefficient*casadi::MX::tanh(xi(1, Sl()))*(casadi::MX::exp(xi(2, Sl())) + fZmin)/casadi::MX::sqrt(1+(casadi::MX::tanh(xi(0, Sl())) * casadi::MX::tanh(xi(0, Sl()))));
         force(2, Sl()) = casadi::MX::exp(xi(2, Sl())) + fZmin;
+        
+
+        // uncomment to use global parametrization
+        /*
+        force(0, Sl()) = xi(0, Sl());
+        force(1, Sl()) = xi(1, Sl());
+        force(2, Sl()) = casadi::MX::exp(xi(2, Sl())) + fZmin +  casadi::MX::times(( casadi::MX::sqrt(casadi::MX::tanh(xi(1, Sl())) * casadi::MX::tanh(xi(1, Sl())) + casadi::MX::tanh(xi(0, Sl())) * casadi::MX::tanh(xi(0, Sl()))) ), (1 / staticFrictionCoefficient));
+        */
         return force;
     }
 
@@ -795,6 +808,7 @@ struct ParametrizedCentroidalMPC::Impl
             cost += this->weights.contactPosition
                     * casadi::MX::sumsqr(contact.nominalPosition - contact.position);
 
+
             
             casadi::MX force_0 = HorizonParametrization(this->parameterizationConstants.staticFrictionCoefficient, 
                                                    this->parameterizationConstants.staticFrictionCoefficient,
@@ -845,6 +859,9 @@ struct ParametrizedCentroidalMPC::Impl
                 cost += this->weights.forceRateOfChange(2)
                         * casadi::MX::sumsqr(forceRateOfChange(2, Sl()));
                 
+                // parameter regularization task
+                cost += this->weights.parameterRegularization * casadi::MX::mtimes(corner.xi_parameter(Sl(), 0).T() , corner.xi_parameter(Sl(), 0));        
+
             }
         }
 
@@ -1104,8 +1121,8 @@ bool ParametrizedCentroidalMPC::advance()
                                                    m_pimpl->contactBoundingBoxes[key].lowerLimit(1), m_pimpl->contactBoundingBoxes[key].upperLimit(1),
                                                    m_pimpl->parameterizationConstants.fZmin, casadi::MX(*it));
                 
-                //corner.force = toEigen(casadi::DM(casadi::MX::evalf(force))).leftCols<1>();   
                 corner.force = toEigen(casadi::DM(casadi::MX::evalf(force))).leftCols<1>();
+                log()->info("{} Obtained contact forces {}", errorPrefix, corner.force);
             } else
             {
                 corner.force.setZero();
