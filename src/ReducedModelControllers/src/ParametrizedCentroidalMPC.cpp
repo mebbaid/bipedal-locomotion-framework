@@ -58,7 +58,14 @@ auto extractFutureValuesFromState(const T& variable)
     return variable(Sl(), Sl(1, variable.columns()));
 }
 
-
+casadi::MX operator-(const casadi::MX& mx_var, const Eigen::Vector3d& eigen_var) {
+    casadi::MX result;
+    // perform the subtraction operation on the elements
+    result(0) =  mx_var(0) - eigen_var(0);
+    result(1) =  mx_var(1) - eigen_var(1);
+    result(2) =  mx_var(2) - eigen_var(2);
+    return result;
+}
 
 struct ParametrizedCentroidalMPC::Impl
 {
@@ -213,6 +220,7 @@ struct ParametrizedCentroidalMPC::Impl
         Eigen::Vector3d com;
         double contactPosition;
         Eigen::Vector3d forceRateOfChange;
+        double payloadWeight;
         double angularMomentum;
         double forceRegularization;
         double parameterRegularization;
@@ -364,6 +372,7 @@ struct ParametrizedCentroidalMPC::Impl
         ok = ok && ptr->getParameter("com_weight", this->weights.com);
         ok = ok && ptr->getParameter("contact_position_weight", this->weights.contactPosition);
         ok = ok && ptr->getParameter("force_rate_of_change_weight", this->weights.forceRateOfChange);
+        ok = ok && ptr->getParameter("paylad_weight", this->weights.payloadWeight);
         ok = ok && ptr->getParameter("angular_momentum_weight", this->weights.angularMomentum);
         ok = ok && ptr->getParameter("average_force_weight", this->weights.forceRegularization);
         ok = ok && ptr->getParameter("parameter_regularization_weight", this->weights.parameterRegularization);
@@ -749,17 +758,7 @@ struct ParametrizedCentroidalMPC::Impl
         // please check https://github.com/casadi/casadi/issues/2563 and
         // https://groups.google.com/forum/#!topic/casadi-users/npPcKItdLN8
         // Assumption: the matrices as stored as column-major
-        /*
-        casadi::DM frictionConeMatrix = casadi::DM::zeros(frictionCone.getA().rows(), //
-                                                          frictionCone.getA().cols());
 
-        std::memcpy(frictionConeMatrix.ptr(),
-                    frictionCone.getA().data(),
-                    sizeof(double) * frictionCone.getA().rows() * frictionCone.getA().cols());
-
-        const casadi::DM zero = casadi::DM::zeros(frictionCone.getA().rows(), 1);
-        casadi::MX rotatedFrictionCone;
-        */
        
         for(const auto& [key, contact] : this->optiVariables.parametrizedContacts)
         {
@@ -770,32 +769,6 @@ struct ParametrizedCentroidalMPC::Impl
             this->opti.subject_to(contact.lowerLimitPosition <= error[0]
                                   <= contact.upperLimitPosition);
 
-            /*
-            for (int i = 0; i < this->optiSettings.horizon; i++)
-            {
-                rotatedFrictionCone
-                    = casadi::MX::mtimes(frictionConeMatrix, //
-                                         casadi::MX::reshape(contact.orientation(Sl(), i), 3, 3)
-                                             .T());
-
-                // TODO please if you want to add heel to toe motion you should define a
-                // contact.maximumNormalForce for each corner. At this stage is too premature.
-                
-                for (const auto& corner : contact.corners)
-                {
-                    this->opti.subject_to(casadi::MX::mtimes(rotatedFrictionCone, //
-                                                             corner.xi_parameter(Sl(), i))
-                                          <= zero);
-
-                    // limit on the normal force
-                    this->opti.subject_to(
-                        0 <= casadi::MX::mtimes(casadi::MX::reshape(contact.orientation(Sl(), i),
-                                                                    3,
-                                                                    3),
-                                                corner.force(Sl(), i)(2)));
-                }
-            }
-            */
         }
         
         //log()->info("{} I am here   ---------------------------.",  errorPrefix);
@@ -879,6 +852,11 @@ struct ParametrizedCentroidalMPC::Impl
                 //std::cerr << "------------------_>>> "  << forceRateOfChange << std::endl;
                 
                 cost += this->weights.forceRegularization * casadi::MX::sumsqr(force - averageForce);
+                        
+                double totalMass = 52.0102;
+                Eigen::Vector3d gravity;
+                gravity(2) = -9.81 * totalMass;
+                cost += this->weights.payloadWeight * casadi::MX::sumsqr(force -  gravity - 1/(8) * externalWrench);
 
                 cost += this->weights.forceRateOfChange(0)
                         * casadi::MX::sumsqr(forceRateOfChange(0, Sl()));
