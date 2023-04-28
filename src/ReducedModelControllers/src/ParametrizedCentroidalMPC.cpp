@@ -75,6 +75,7 @@ struct ParametrizedCentroidalMPC::Impl
         double staticFrictionCoefficient;
         double torsionalFrictionCoefficient;
         const double fZmin = 0.0;
+        const double k1    = 10.0;  // see https://github.com/ami-iit/element_walking-with-payload/issues/37#issuecomment-1505225623
     };
     ParametrizationConstants parameterizationConstants;  /**< constants for computing phi and its inverse   */
 
@@ -176,6 +177,12 @@ struct ParametrizedCentroidalMPC::Impl
         casadi::MX dcomCurrent;
         casadi::MX angularMomentumCurrent;
         casadi::MX externalWrench;
+
+        // robust adaptive variables see https://github.com/ami-iit/element_walking-with-payload/issues/37#issuecomment-1505225623
+        casadi::MX z1;   /**< CoM reference tracking error */
+        casadi::MX z2;   /**< Adaptive coordinates change */
+        //casadi::MX eta;  /**< zero dynamics- angular momentum */
+        casadi::MX k2;   /**< second adaptive gain */
     };
     OptimizationVariables optiVariables; /**< Optimization variables */
 
@@ -573,6 +580,11 @@ struct ParametrizedCentroidalMPC::Impl
         this->optiVariables.dcom = this->opti.variable(vector3Size, stateHorizon);
         this->optiVariables.angularMomentum = this->opti.variable(vector3Size, stateHorizon);
 
+        // create varibales for coordinate change and adaptive gain
+        this->optiVariables.z1 = this->opti.variable(vector3Size, stateHorizon);
+        this->optiVariables.z2 = this->opti.variable(vector3Size, stateHorizon);
+        this->optiVariables.k2 = this->opti.variable(vector3Size, vector3Size);  /** < 3 x 3 fixed gain over the horizon  */
+
         // the casadi contacts depends on the maximum number of contacts
         for (const auto& [key, contact] : this->state.contacts)
         {
@@ -668,6 +680,10 @@ struct ParametrizedCentroidalMPC::Impl
         auto& angularMomentum = this->optiVariables.angularMomentum;
         auto& externalWrench = this->optiVariables.externalWrench;
 
+        auto& z1 = this->optiVariables.z1;
+        auto& z2 = this->optiVariables.z2;
+        auto& k2 = this->optiVariables.k2;
+
         // prepare the input of the ode
         std::vector<casadi::MX> odeInput;
         odeInput.push_back(externalWrench);
@@ -695,9 +711,13 @@ struct ParametrizedCentroidalMPC::Impl
         }
         // set the initial values
         this->opti.subject_to(this->optiVariables.comCurrent == com(Sl(), 0));
+        this->opti.subject_to(z1(Sl(), 0) == this->optiVariables.comCurrent - this->optiVariables.comReference); // adaptive change of coordinates
+        this->opti.subject_to(z2(Sl(), 0) == this->parameterizationConstants.k1 * casadi::MX::eye(3) + this->optiVariables.angularMomentumCurrent);
         this->opti.subject_to(this->optiVariables.dcomCurrent == dcom(Sl(), 0));
         this->opti.subject_to(this->optiVariables.angularMomentumCurrent
                               == angularMomentum(Sl(), 0));
+
+
         for (const auto& [key, contact] : this->optiVariables.parametrizedContacts)
         {
             this->opti.subject_to(this->optiVariables.parametrizedContacts.at(key).currentPosition
@@ -793,12 +813,20 @@ struct ParametrizedCentroidalMPC::Impl
         std::cerr << "------------------_>>> "  << weightCoMZ << std::endl;
 
         // (max - mix) * expo + min
-
+        /*
         casadi::MX cost
             = this->weights.angularMomentum * 10 * casadi::MX::sumsqr(angularMomentum(0, Sl()))
               + this->weights.angularMomentum * casadi::MX::sumsqr(angularMomentum(1, Sl()))
               + this->weights.angularMomentum * casadi::MX::sumsqr(angularMomentum(2, Sl()))
               + this->weights.com(0) * casadi::MX::sumsqr(com(0, Sl()) - comReference(0, Sl()))
+              + this->weights.com(1) * casadi::MX::sumsqr(com(1, Sl()) - comReference(1, Sl()))
+              + casadi::MX::sumsqr(weightCoMZ * (com(2, Sl()) - comReference(2, Sl())));
+        */
+       casadi::MX cost
+            = this->weights.angularMomentum * 10 * casadi::MX::sumsqr(angularMomentum(0, Sl()))
+              + this->weights.angularMomentum * casadi::MX::sumsqr(angularMomentum(1, Sl()))
+              + this->weights.angularMomentum * casadi::MX::sumsqr(angularMomentum(2, Sl()))
+              + this->weights.com(0) * casadi::MX::sumsqr(z1(1, Sl()))  // term penalizing the com tracking using the adaptive coordinates change
               + this->weights.com(1) * casadi::MX::sumsqr(com(1, Sl()) - comReference(1, Sl()))
               + casadi::MX::sumsqr(weightCoMZ * (com(2, Sl()) - comReference(2, Sl())));
 
