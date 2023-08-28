@@ -35,12 +35,9 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
-                <li><a href="./v0.2.0/index.html">v0.2.0</a></li>
-                <li><a href="./v0.4.0/index.html">v0.4.0</a></li>
-                <li><a href="./v0.3.0/index.html">v0.3.0</a></li>
-                <li><a href="./v0.5.0/index.html">v0.5.0</a></li>
-                <li><a href="./v0.6.0/index.html">v0.6.0</a></li>
-                <li><a href="./v0.1.1/index.html">v0.1.1</a></li>
+                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
+                <li><a href="./v0.12.0/index.html">v0.12.0</a></li>
+                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
               </ol>
             </li>
             <li>
@@ -82,6 +79,14 @@
           <h2><a href="#func-members">Functions</a></h2>
           <dl class="m-doc">
             <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="CasadiConversions_8h.html#a45a5aa8a4c62ac77c651decc132cd9b8" class="m-doc">toEigen</a>(</span><span class="m-doc-wrap">casadi::DM&amp; input) -&gt; Eigen::Map&lt;Eigen::MatrixXd&gt;</span>
+            </dt>
+            <dd>Conversion from a casadi::DM to an Eigen matrix,.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="CasadiConversions_8h.html#a6f0fa87d3039e71c1b954fc2b6a170cb" class="m-doc">toEigen</a>(</span><span class="m-doc-wrap">const casadi::DM&amp; input) -&gt; Eigen::Map&lt;const Eigen::MatrixXd&gt;</span>
+            </dt>
+            <dd>Conversion from a casadi::DM to an Eigen matrix,.</dd>
+            <dt>
               <div class="m-doc-template">template&lt;class Scalar&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a href="CommonConversions_8h.html#ab559baf769548fa6dc9b2319b05e61b7" class="m-doc">toEigenPose</a>(</span><span class="m-doc-wrap">const Eigen::Matrix&lt;Scalar, 3, 3&gt;&amp; rotation,
               const Eigen::Matrix&lt;Scalar, 3, 1&gt;&amp; translation) -&gt; Eigen::Matrix&lt;Scalar, 4, 4&gt;</span>
@@ -115,6 +120,14 @@
               <span class="m-doc-wrap-bumper">auto <a href="ManifConversions_8h.html#aa3cbc74d297378895e4686cd4f8f3b3f" class="m-doc">toManifRot</a>(</span><span class="m-doc-wrap">const iDynTree::Rotation&amp; R) -&gt; manif::SO3d</span>
             </dt>
             <dd>Convert iDynTree rotation object to manif SE3d object.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="ManifConversions_8h.html#a2ee026f68afc3402f6b722614d595136" class="m-doc">toManifTwist</a>(</span><span class="m-doc-wrap">const iDynTree::Twist&amp; twist) -&gt; manif::SE3Tangentd</span>
+            </dt>
+            <dd>Convert iDynTree twist object to manif SE3Tangentd object.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="ManifConversions_8h.html#a0514450edfa28e5496b74ab194b67e2f" class="m-doc">toiDynTreePose</a>(</span><span class="m-doc-wrap">const manif::SE3d&amp; se3) -&gt; iDynTree::Transform</span>
+            </dt>
+            <dd>Convert a manif SE3 object into and iDynTree::Transform.</dd>
             <dt>
               <div class="m-doc-template">template&lt;typename type&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a href="matioCppConversions_8h.html#a02e0b795745b9a9a6553bc9bcdcd8da9" class="m-doc">toEigen</a>(</span><span class="m-doc-wrap">matioCpp::MultiDimensionalArray&lt;type&gt;&amp; input) -&gt; Eigen::Map&lt;Eigen::Matrix&lt;type, Eigen::Dynamic, Eigen::Dynamic&gt;&gt;</span>

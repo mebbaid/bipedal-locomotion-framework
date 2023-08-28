@@ -35,12 +35,9 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
-                <li><a href="./v0.2.0/index.html">v0.2.0</a></li>
-                <li><a href="./v0.4.0/index.html">v0.4.0</a></li>
-                <li><a href="./v0.3.0/index.html">v0.3.0</a></li>
-                <li><a href="./v0.5.0/index.html">v0.5.0</a></li>
-                <li><a href="./v0.6.0/index.html">v0.6.0</a></li>
-                <li><a href="./v0.1.1/index.html">v0.1.1</a></li>
+                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
+                <li><a href="./v0.12.0/index.html">v0.12.0</a></li>
+                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
               </ol>
             </li>
             <li>
@@ -75,7 +72,6 @@
               <ul>
                 <li><a href="#namespaces">Namespaces</a></li>
                 <li><a href="#nested-classes">Classes</a></li>
-                <li><a href="#func-members">Functions</a></li>
               </ul>
             </li>
           </ul>
@@ -84,6 +80,8 @@
           <h2><a href="#namespaces">Namespaces</a></h2>
           <dl class="m-doc">
             <dt>namespace <a href="namespaceBipedalLocomotion_1_1Estimators_1_1FloatingBaseEstimators.html" class="m-doc">FloatingBaseEstimators</a></dt>
+            <dd><span></span></dd>
+            <dt>namespace <a href="namespaceBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator.html" class="m-doc">RobotDynamicsEstimator</a></dt>
             <dd><span></span></dd>
           </dl>
         </section>
@@ -99,6 +97,18 @@
             </dt>
             <dd><span></span></dd>
             <dt>
+              struct <a href="structBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMUState.html" class="m-doc">BaseEstimatorFromFootIMUState</a>
+            </dt>
+            <dd><a href="structBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMUState.html" class="m-doc">BaseEstimatorFromFootIMUState</a> contains the internal state of the estimator.</dd>
+            <dt>
+              struct <a href="structBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMUInput.html" class="m-doc">BaseEstimatorFromFootIMUInput</a>
+            </dt>
+            <dd><a href="structBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMUInput.html" class="m-doc">BaseEstimatorFromFootIMUInput</a> contains the input of the <a href="classBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMU.html" class="m-doc">BaseEstimatorFromFootIMU</a> class.</dd>
+            <dt>
+              class <a href="classBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMU.html" class="m-doc">BaseEstimatorFromFootIMU</a>
+            </dt>
+            <dd><a href="classBipedalLocomotion_1_1Estimators_1_1BaseEstimatorFromFootIMU.html" class="m-doc">BaseEstimatorFromFootIMU</a> implements the propagation of the foot pose to the root link through the kinematic chain given by the leg joints positions.</dd>
+            <dt>
               class <a href="classBipedalLocomotion_1_1Estimators_1_1FloatingBaseEstimator.html" class="m-doc">FloatingBaseEstimator</a>
             </dt>
             <dd><a href="classBipedalLocomotion_1_1Estimators_1_1FloatingBaseEstimator.html" class="m-doc">FloatingBaseEstimator</a> class contains the bare-bones implementation for a <a href="classBipedalLocomotion_1_1Estimators_1_1LeggedOdometry.html" class="m-doc">LeggedOdometry</a> based or Extended Kalman Filter based floating base estimation algorithms for bipedal robots.</dd>
@@ -110,19 +120,6 @@
               class <a href="classBipedalLocomotion_1_1Estimators_1_1LeggedOdometry.html" class="m-doc">LeggedOdometry</a>
             </dt>
             <dd>Floating base estimation algorithm using only kinematic measurements by assuming atleast one frame on the robot is in contact with the environment.</dd>
-            <dt>
-              struct <a href="structBipedalLocomotion_1_1Estimators_1_1KinDynComputationsDescriptor.html" class="m-doc">KinDynComputationsDescriptor</a>
-            </dt>
-            <dd><a href="structBipedalLocomotion_1_1Estimators_1_1KinDynComputationsDescriptor.html" class="m-doc">KinDynComputationsDescriptor</a> wraps a pointer iDynTree KinDynComputations object.</dd>
-          </dl>
-        </section>
-        <section id="func-members">
-          <h2><a href="#func-members">Functions</a></h2>
-          <dl class="m-doc">
-            <dt>
-              <span class="m-doc-wrap-bumper">auto <a href="ModelComputationsHelper_8h.html#a4506e586bf6c42d03cfba22fc6258d93" class="m-doc">constructKinDynComputationsDescriptor</a>(</span><span class="m-doc-wrap">std::weak_ptr&lt;<a href="classBipedalLocomotion_1_1ParametersHandler_1_1IParametersHandler.html" class="m-doc">BipedalLocomotion::<wbr />ParametersHandler::<wbr />IParametersHandler</a>&gt; handler) -&gt; <a href="structBipedalLocomotion_1_1Estimators_1_1KinDynComputationsDescriptor.html" class="m-doc">KinDynComputationsDescriptor</a></span>
-            </dt>
-            <dd>Helper function that can be used to build a KinDynComputations object loaded with specified model.</dd>
           </dl>
         </section>
       </div>

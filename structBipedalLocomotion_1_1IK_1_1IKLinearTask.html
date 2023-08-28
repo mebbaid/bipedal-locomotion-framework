@@ -35,12 +35,9 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
-                <li><a href="./v0.2.0/index.html">v0.2.0</a></li>
-                <li><a href="./v0.4.0/index.html">v0.4.0</a></li>
-                <li><a href="./v0.3.0/index.html">v0.3.0</a></li>
-                <li><a href="./v0.5.0/index.html">v0.5.0</a></li>
-                <li><a href="./v0.6.0/index.html">v0.6.0</a></li>
-                <li><a href="./v0.1.1/index.html">v0.1.1</a></li>
+                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
+                <li><a href="./v0.12.0/index.html">v0.12.0</a></li>
+                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
               </ol>
             </li>
             <li>
@@ -77,6 +74,7 @@
                 <li><a href="#base-classes">Base classes</a></li>
                 <li><a href="#derived-classes">Derived classes</a></li>
                 <li><a href="#typeless-methods">Constructors, destructors, conversion operators</a></li>
+                <li><a href="#pub-methods">Public functions</a></li>
               </ul>
             </li>
           </ul>
@@ -102,9 +100,17 @@
             </dt>
             <dd><a href="classBipedalLocomotion_1_1IK_1_1SE3Task.html" class="m-doc">SE3Task</a> is a concrete implementation of the Task.</dd>
             <dt>
+              class <a href="classBipedalLocomotion_1_1IK_1_1JointLimitsTask.html" class="m-doc">JointLimitsTask</a>
+            </dt>
+            <dd><a href="classBipedalLocomotion_1_1IK_1_1JointLimitsTask.html" class="m-doc">JointLimitsTask</a> is a concrete implementation of the Task.</dd>
+            <dt>
               class <a href="classBipedalLocomotion_1_1IK_1_1JointTrackingTask.html" class="m-doc">JointTrackingTask</a>
             </dt>
             <dd>JointsTrackingTask is a concrete implementation of the Task.</dd>
+            <dt>
+              class <a href="classBipedalLocomotion_1_1IK_1_1R3Task.html" class="m-doc">R3Task</a>
+            </dt>
+            <dd><a href="classBipedalLocomotion_1_1IK_1_1R3Task.html" class="m-doc">R3Task</a> is a concrete implementation of the Task.</dd>
             <dt>
               class <a href="classBipedalLocomotion_1_1IK_1_1SE3Task.html" class="m-doc">SE3Task</a>
             </dt>
@@ -123,6 +129,41 @@
             </dt>
             <dd><span></span></dd>
           </dl>
+        </section>
+        <section id="pub-methods">
+          <h2><a href="#pub-methods">Public functions</a></h2>
+          <dl class="m-doc">
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#acbafe7a440ba7e7fbd0d174dc994accf" class="m-doc">setKinDyn</a>(</span><span class="m-doc-wrap">std::shared_ptr&lt;iDynTree::KinDynComputations&gt; kinDyn) -&gt; bool <span class="m-label m-flat m-warning">virtual</span></span>
+            </dt>
+            <dd>Set the kinDynComputations object.</dd>
+          </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="acbafe7a440ba7e7fbd0d174dc994accf"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">bool BipedalLocomotion::<wbr />IK::<wbr />IKLinearTask::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#acbafe7a440ba7e7fbd0d174dc994accf" class="m-doc-self">setKinDyn</a>(</span><span class="m-doc-wrap">std::shared_ptr&lt;iDynTree::KinDynComputations&gt; kinDyn) <span class="m-label m-warning">virtual</span></span></span>
+            </h3>
+            <p>Set the kinDynComputations object.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">kinDyn</td>
+                  <td>pointer to a kinDynComputations object.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>True in case of success, false otherwise.</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div></section>
         </section>
       </div>
     </div>

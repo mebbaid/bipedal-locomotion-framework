@@ -35,12 +35,9 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
-                <li><a href="./v0.2.0/index.html">v0.2.0</a></li>
-                <li><a href="./v0.4.0/index.html">v0.4.0</a></li>
-                <li><a href="./v0.3.0/index.html">v0.3.0</a></li>
-                <li><a href="./v0.5.0/index.html">v0.5.0</a></li>
-                <li><a href="./v0.6.0/index.html">v0.6.0</a></li>
-                <li><a href="./v0.1.1/index.html">v0.1.1</a></li>
+                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
+                <li><a href="./v0.12.0/index.html">v0.12.0</a></li>
+                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
               </ol>
             </li>
             <li>
@@ -160,7 +157,7 @@ $SO(3)$
 <use x='21.718897' y='0' xlink:href='#eq5-g1-51'/>
 <use x='27.571887' y='0' xlink:href='#eq5-g1-41'/>
 </g>
-</svg>.</p><aside class="m-note m-info"><h4>Note</h4><p>Please refer to <a href="https://github.com/dic-iit/lie-group-controllers">https:/<wbr />/<wbr />github.com/<wbr />dic-iit/<wbr />lie-group-controllers</a> if you are interested in the implementation of the PD controllers.</p></aside>
+</svg>.</p><aside class="m-note m-info"><h4>Note</h4><p>Please refer to <a href="https://github.com/ami-iit/lie-group-controllers">https:/<wbr />/<wbr />github.com/<wbr />ami-iit/<wbr />lie-group-controllers</a> if you are interested in the implementation of the PD controllers.</p></aside>
         <section id="base-classes">
           <h2><a href="#base-classes">Base classes</a></h2>
           <dl class="m-doc">
@@ -233,7 +230,7 @@ $SO(3)$
                 </tr>
               </tfoot>
             </table>
-<aside class="m-note m-info"><h4>Note</h4><p>the following parameters are required by the class</p><table class="m-table"><thead><tr><th>Parameter Name</th><th>Type</th><th>Description</th><th>Mandatory</th></tr></thead><tbody><tr><td><code>robot_acceleration_variable_name</code></td><td><code>string</code></td><td>Name of the variable contained in <code>VariablesHandler</code> describing the robot acceleration</td><td>Yes</td></tr><tr><td><code>frame_name</code></td><td><code>string</code></td><td>Name of the frame controlled by the <a href="classBipedalLocomotion_1_1TSID_1_1SO3Task.html" class="m-doc">SO3Task</a></td><td>Yes</td></tr><tr><td><code>kp_angular</code></td><td><code>double</code></td><td>Gain of the orientation controller</td><td>Yes</td></tr><tr><td><code>kd_angular</code></td><td><code>double</code></td><td>Gain of the angular velocity controller</td><td>Yes</td></tr></tbody></table></aside>
+<aside class="m-note m-info"><h4>Note</h4><p>the following parameters are required by the class</p><table class="m-table"><thead><tr><th>Parameter Name</th><th>Type</th><th>Description</th><th>Mandatory</th></tr></thead><tbody><tr><td><code>robot_acceleration_variable_name</code></td><td><code>string</code></td><td>Name of the variable contained in <code>VariablesHandler</code> describing the robot acceleration</td><td>Yes</td></tr><tr><td><code>frame_name</code></td><td><code>string</code></td><td>Name of the frame controlled by the <a href="classBipedalLocomotion_1_1TSID_1_1SO3Task.html" class="m-doc">SO3Task</a></td><td>Yes</td></tr><tr><td><code>kp_angular</code></td><td><code>double</code> or <code>vector&lt;double&gt;</code></td><td>Gain of the orientation controller</td><td>Yes</td></tr><tr><td><code>kd_angular</code></td><td><code>double</code> or <code>vector&lt;double&gt;</code></td><td>Gain of the angular velocity controller</td><td>Yes</td></tr></tbody></table></aside>
           </div></section>
           <section class="m-doc-details" id="a8524387ecc72645235f5dfb5f8d70059"><div>
             <h3>

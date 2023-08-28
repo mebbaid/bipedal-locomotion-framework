@@ -35,12 +35,9 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
-                <li><a href="./v0.2.0/index.html">v0.2.0</a></li>
-                <li><a href="./v0.4.0/index.html">v0.4.0</a></li>
-                <li><a href="./v0.3.0/index.html">v0.3.0</a></li>
-                <li><a href="./v0.5.0/index.html">v0.5.0</a></li>
-                <li><a href="./v0.6.0/index.html">v0.6.0</a></li>
-                <li><a href="./v0.1.1/index.html">v0.1.1</a></li>
+                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
+                <li><a href="./v0.12.0/index.html">v0.12.0</a></li>
+                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
               </ol>
             </li>
             <li>
@@ -80,14 +77,14 @@
             </li>
           </ul>
         </nav>
-<p>You can use the <a href="classBipedalLocomotion_1_1TextLogging_1_1LoggerBuilder.html" class="m-doc">LoggerBuilder</a> at the beginning of your application to set a different sink for spdlog. For instance, you can use the following example to enable the TextLogging with YARP</p><pre class="m-code"><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;BipedalLocomotion/TextLogging/Logger.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;BipedalLocomotion/TextLogging/YarpLogger.h&gt;</span><span class="cp"></span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;BipedalLocomotion/TextLogging/LoggerBuilder.h&gt;</span><span class="cp"></span>
+<p>You can use the <a href="classBipedalLocomotion_1_1TextLogging_1_1LoggerBuilder.html" class="m-doc">LoggerBuilder</a> at the beginning of your application to set a different sink for spdlog. For instance, you can use the following example to enable the TextLogging with YARP</p><pre class="m-code"><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;BipedalLocomotion/TextLogging/Logger.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;BipedalLocomotion/TextLogging/YarpLogger.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;BipedalLocomotion/TextLogging/LoggerBuilder.h&gt;</span>
 
 <span class="c1">// Change the logger</span>
-<span class="n">BipedalLocomotion</span><span class="o">::</span><span class="n">TextLogging</span><span class="o">::</span><span class="n">LoggerBuilder</span><span class="o">::</span><span class="n">setFactory</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BipedalLocomotion</span><span class="o">::</span><span class="n">TextLogging</span><span class="o">::</span><span class="n">YarpLoggerFactory</span><span class="o">&gt;</span><span class="p">());</span><span class="w"></span>
+<span class="n">BipedalLocomotion</span><span class="o">::</span><span class="n">TextLogging</span><span class="o">::</span><span class="n">LoggerBuilder</span><span class="o">::</span><span class="n">setFactory</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">BipedalLocomotion</span><span class="o">::</span><span class="n">TextLogging</span><span class="o">::</span><span class="n">YarpLoggerFactory</span><span class="o">&gt;</span><span class="p">());</span>
 
-<span class="n">BipedalLocomotion</span><span class="o">::</span><span class="n">log</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;My info&quot;</span><span class="p">);</span><span class="w"></span></pre>
+<span class="n">BipedalLocomotion</span><span class="o">::</span><span class="n">log</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;My info&quot;</span><span class="p">);</span></pre>
         <section id="pub-static-methods">
           <h2><a href="#pub-static-methods">Public static functions</a></h2>
           <dl class="m-doc">
@@ -100,8 +97,8 @@
         <section id="friends">
           <h2><a href="#friends">Friends</a></h2>
           <dl class="m-doc">
-            <dt id="a51300df159e3dad575d854ecd19b077c">
-              <span class="m-doc-wrap-bumper">auto <a href="#a51300df159e3dad575d854ecd19b077c" class="m-doc-self">BipedalLocomotion::log</a>(</span><span class="m-doc-wrap">) -&gt; Logger*const</span>
+            <dt id="a087d7df64ead087ba19d2fa1e7287f90">
+              <span class="m-doc-wrap-bumper">auto <a href="#a087d7df64ead087ba19d2fa1e7287f90" class="m-doc-self">BipedalLocomotion::log</a>(</span><span class="m-doc-wrap">) -&gt; std::shared_ptr&lt;Logger&gt;const</span>
             </dt>
             <dd><span></span></dd>
           </dl>

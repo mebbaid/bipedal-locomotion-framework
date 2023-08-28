@@ -17,9 +17,9 @@
         </childnode>
         <childnode refid="4" relation="include">
         </childnode>
-        <childnode refid="14" relation="include">
+        <childnode refid="19" relation="include">
         </childnode>
-        <childnode refid="15" relation="include">
+        <childnode refid="20" relation="include">
         </childnode>
       </node>
       <node id="3">
@@ -28,26 +28,44 @@
       <node id="9">
         <label>BipedalLocomotion/ParametersHandler/IParametersHandler.h</label>
         <link refid="IParametersHandler_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
         <childnode refid="2" relation="include">
         </childnode>
         <childnode refid="6" relation="include">
         </childnode>
-        <childnode refid="10" relation="include">
+        <childnode refid="11" relation="include">
         </childnode>
       </node>
       <node id="6">
         <label>string</label>
       </node>
-      <node id="11">
+      <node id="15">
+        <label>BipedalLocomotion/System/ILinearTaskFactory.h</label>
+        <link refid="ILinearTaskFactory_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
         <label>BipedalLocomotion/System/VariablesHandler.h</label>
         <link refid="VariablesHandler_8h"/>
-        <childnode refid="12" relation="include">
+        <childnode refid="13" relation="include">
         </childnode>
         <childnode refid="6" relation="include">
         </childnode>
         <childnode refid="2" relation="include">
         </childnode>
-        <childnode refid="13" relation="include">
+        <childnode refid="14" relation="include">
         </childnode>
         <childnode refid="9" relation="include">
         </childnode>
@@ -65,26 +83,49 @@
         </childnode>
         <childnode refid="9" relation="include">
         </childnode>
-        <childnode refid="11" relation="include">
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>BipedalLocomotion/System/Factory.h</label>
+        <link refid="Factory_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
         </childnode>
       </node>
       <node id="7">
         <label>Eigen/Dense</label>
       </node>
-      <node id="14">
+      <node id="19">
         <label>iDynTree/KinDynComputations.h</label>
       </node>
-      <node id="10">
+      <node id="11">
         <label>vector</label>
       </node>
-      <node id="15">
+      <node id="20">
         <label>LieGroupControllers/ProportionalController.h</label>
       </node>
-      <node id="12">
-        <label>cstddef</label>
+      <node id="17">
+        <label>utility</label>
       </node>
       <node id="13">
+        <label>cstddef</label>
+      </node>
+      <node id="14">
         <label>unordered_map</label>
+      </node>
+      <node id="10">
+        <label>chrono</label>
+      </node>
+      <node id="16">
+        <label>type_traits</label>
       </node>
       <node id="8">
         <label>iDynTree/Core/MatrixView.h</label>
@@ -94,6 +135,10 @@
         <link refid="IKLinearTask_8h"/>
         <childnode refid="5" relation="include">
         </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
       </node>
       <node id="2">
         <label>memory</label>
@@ -102,12 +147,30 @@
     <innerclass refid="classBipedalLocomotion_1_1IK_1_1CoMTask" prot="public">BipedalLocomotion::IK::CoMTask</innerclass>
     <innernamespace refid="namespaceBipedalLocomotion">BipedalLocomotion</innernamespace>
     <innernamespace refid="namespaceBipedalLocomotion_1_1IK">BipedalLocomotion::IK</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="IK_2include_2BipedalLocomotion_2IK_2CoMTask_8h_1a9c21e3a141322c92512a73d9d4abf926" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>BipedalLocomotion::IK::BLF_REGISTER_IK_TASK</definition>
+        <argsstring>(CoMTask)</argsstring>
+        <name>BLF_REGISTER_IK_TASK</name>
+        <param>
+          <type>CoMTask</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="BipedalLocomotion/IK/CoMTask.h" line="142" column="1" declfile="BipedalLocomotion/IK/CoMTask.h" declline="142" declcolumn="1"/>
+      </memberdef>
+      </sectiondef>
     <briefdescription>
     </briefdescription>
     <detaileddescription>
 <para><simplesect kind="authors"><para>Giulio Romualdi </para>
 </simplesect>
-<simplesect kind="copyright"><para>2021 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the GNU Lesser General Public License v2.1 or any later version. </para>
+<simplesect kind="copyright"><para>2021 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the BSD-3-Clause license. </para>
 </simplesect>
 </para>
     </detaileddescription>

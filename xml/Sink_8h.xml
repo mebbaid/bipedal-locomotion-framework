@@ -11,6 +11,10 @@
         </childnode>
         <childnode refid="4" relation="include">
         </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
       </node>
       <node id="3">
         <label>variant</label>
@@ -24,12 +28,18 @@
         </childnode>
         <childnode refid="7" relation="include">
         </childnode>
-      </node>
-      <node id="6">
-        <label>string</label>
+        <childnode refid="8" relation="include">
+        </childnode>
       </node>
       <node id="7">
+        <label>string</label>
+      </node>
+      <node id="8">
         <label>vector</label>
+      </node>
+      <node id="10">
+        <label>BipedalLocomotion/System/OutputPort.h</label>
+        <link refid="OutputPort_8h"/>
       </node>
       <node id="1">
         <label>BipedalLocomotion/System/Sink.h</label>
@@ -38,6 +48,13 @@
         </childnode>
       </node>
       <node id="5">
+        <label>chrono</label>
+      </node>
+      <node id="9">
+        <label>BipedalLocomotion/System/InputPort.h</label>
+        <link refid="InputPort_8h"/>
+      </node>
+      <node id="6">
         <label>memory</label>
       </node>
     </incdepgraph>
@@ -49,7 +66,7 @@
     <detaileddescription>
 <para><simplesect kind="authors"><para>Giulio Romualdi </para>
 </simplesect>
-<simplesect kind="copyright"><para>2021 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the GNU Lesser General Public License v2.1 or any later version. </para>
+<simplesect kind="copyright"><para>2021 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the BSD-3-Clause license. </para>
 </simplesect>
 </para>
     </detaileddescription>

@@ -35,12 +35,9 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
-                <li><a href="./v0.2.0/index.html">v0.2.0</a></li>
-                <li><a href="./v0.4.0/index.html">v0.4.0</a></li>
-                <li><a href="./v0.3.0/index.html">v0.3.0</a></li>
-                <li><a href="./v0.5.0/index.html">v0.5.0</a></li>
-                <li><a href="./v0.6.0/index.html">v0.6.0</a></li>
-                <li><a href="./v0.1.1/index.html">v0.1.1</a></li>
+                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
+                <li><a href="./v0.12.0/index.html">v0.12.0</a></li>
+                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
               </ol>
             </li>
             <li>
@@ -78,7 +75,7 @@
             </li>
           </ul>
         </nav>
-<aside class="m-note m-default"><h4>Copyright</h4><p>2020 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the GNU Lesser General Public License v2.1 or any later version.</p></aside>
+<aside class="m-note m-default"><h4>Copyright</h4><p>2020 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the BSD-3-Clause license.</p></aside>
         <section id="namespaces">
           <h2><a href="#namespaces">Namespaces</a></h2>
           <dl class="m-doc">
@@ -100,11 +97,15 @@
             <dd><span></span></dd>
             <dt>namespace <a href="namespaceBipedalLocomotion_1_1Math.html" class="m-doc">Math</a></dt>
             <dd><span></span></dd>
+            <dt>namespace <a href="namespaceBipedalLocomotion_1_1ML.html" class="m-doc">ML</a></dt>
+            <dd><span></span></dd>
             <dt>namespace <a href="namespaceBipedalLocomotion_1_1ParametersHandler.html" class="m-doc">ParametersHandler</a></dt>
             <dd><span></span></dd>
             <dt>namespace <a href="namespaceBipedalLocomotion_1_1Perception.html" class="m-doc">Perception</a></dt>
             <dd><span></span></dd>
             <dt>namespace <a href="namespaceBipedalLocomotion_1_1Planners.html" class="m-doc">Planners</a></dt>
+            <dd><span></span></dd>
+            <dt>namespace <a href="namespaceBipedalLocomotion_1_1ReducedModelControllers.html" class="m-doc">ReducedModelControllers</a></dt>
             <dd><span></span></dd>
             <dt>namespace <a href="namespaceBipedalLocomotion_1_1RobotInterface.html" class="m-doc">RobotInterface</a></dt>
             <dd><span></span></dd>
@@ -124,7 +125,7 @@
           <h2><a href="#func-members">Functions</a></h2>
           <dl class="m-doc">
             <dt>
-              <span class="m-doc-wrap-bumper">auto <a href="#a7340b06607c930de22a649e862b5244d" class="m-doc">log</a>(</span><span class="m-doc-wrap">) -&gt; TextLogging::Logger*const</span>
+              <span class="m-doc-wrap-bumper">auto <a href="#a0262a6287c9047d721fc7809c2be667c" class="m-doc">log</a>(</span><span class="m-doc-wrap">) -&gt; std::shared_ptr&lt;TextLogging::Logger&gt; const</span>
             </dt>
             <dd>Get an the instance of the log.</dd>
             <dt>
@@ -135,9 +136,9 @@
         </section>
         <section>
           <h2>Function documentation</h2>
-          <section class="m-doc-details" id="a7340b06607c930de22a649e862b5244d"><div>
+          <section class="m-doc-details" id="a0262a6287c9047d721fc7809c2be667c"><div>
             <h3>
-              <span class="m-doc-wrap-bumper">TextLogging::Logger*const BipedalLocomotion::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a7340b06607c930de22a649e862b5244d" class="m-doc-self">log</a>(</span><span class="m-doc-wrap">)</span></span>
+              <span class="m-doc-wrap-bumper">std::shared_ptr&lt;TextLogging::Logger&gt; const BipedalLocomotion::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a0262a6287c9047d721fc7809c2be667c" class="m-doc-self">log</a>(</span><span class="m-doc-wrap">)</span></span>
               <div class="m-doc-include m-code m-inverted m-text-right"><span class="cp">#include</span> <a class="cpf" href="Logger_8h.html">&lt;BipedalLocomotion/TextLogging/Logger.h&gt;</a></div>
             </h3>
             <p>Get an the instance of the log.</p>

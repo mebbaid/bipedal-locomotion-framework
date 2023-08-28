@@ -182,13 +182,13 @@
 </entry></row>
 <row>
 <entry thead="no" align='center'><para><computeroutput>kp_angular</computeroutput>   </para>
-</entry><entry thead="no" align='center'><para><computeroutput>double</computeroutput>   </para>
+</entry><entry thead="no" align='center'><para><computeroutput>double</computeroutput> or <computeroutput>vector&lt;double&gt;</computeroutput>   </para>
 </entry><entry thead="no" align='center'><para>Gain of the orientation controller   </para>
 </entry><entry thead="no" align='center'><para>Yes    </para>
 </entry></row>
 <row>
 <entry thead="no" align='center'><para><computeroutput>kd_angular</computeroutput>   </para>
-</entry><entry thead="no" align='center'><para><computeroutput>double</computeroutput>   </para>
+</entry><entry thead="no" align='center'><para><computeroutput>double</computeroutput> or <computeroutput>vector&lt;double&gt;</computeroutput>   </para>
 </entry><entry thead="no" align='center'><para>Gain of the angular velocity controller   </para>
 </entry><entry thead="no" align='center'><para>Yes   </para>
 </entry></row>
@@ -397,7 +397,7 @@
 <para><ref refid="classBipedalLocomotion_1_1TSID_1_1SO3Task" kindref="compound">SO3Task</ref> is a concrete implementation of the <ref refid="structBipedalLocomotion_1_1TSID_1_1TSIDLinearTask" kindref="compound">TSIDLinearTask</ref>. </para>
     </briefdescription>
     <detaileddescription>
-<para>Please use this element if you want to control the orientation of a given frame rigidly attached to the robot. The task assumes perfect control of the robot acceleration <formula id="51">$\dot{\nu}$</formula> that contains the base linear and angular acceleration expressed in mixed representation and the joints acceleration. The task represents the following equation <formula id="109">\[ J \dot{\nu} + \dot{J} \nu = \dot{\mathrm{v}} ^ * \]</formula> where <formula id="39">$J$</formula> is the robot jacobian and <formula id="110">$\dot{\mathrm{v}} ^ *$</formula> is the desired acceleration. The desired acceleration is chosen such that the frame orientation will asymptotically converge to the desired trajectory. The angular acceleration is computed by a PD controller in <formula id="42">$SO(3)$</formula>. <simplesect kind="note"><para>Please refer to <ulink url="https://github.com/dic-iit/lie-group-controllers">https://github.com/dic-iit/lie-group-controllers</ulink> if you are interested in the implementation of the PD controllers. </para>
+<para>Please use this element if you want to control the orientation of a given frame rigidly attached to the robot. The task assumes perfect control of the robot acceleration <formula id="149">$\dot{\nu}$</formula> that contains the base linear and angular acceleration expressed in mixed representation and the joints acceleration. The task represents the following equation <formula id="188">\[ J \dot{\nu} + \dot{J} \nu = \dot{\mathrm{v}} ^ * \]</formula> where <formula id="122">$J$</formula> is the robot jacobian and <formula id="189">$\dot{\mathrm{v}} ^ *$</formula> is the desired acceleration. The desired acceleration is chosen such that the frame orientation will asymptotically converge to the desired trajectory. The angular acceleration is computed by a PD controller in <formula id="103">$SO(3)$</formula>. <simplesect kind="note"><para>Please refer to <ulink url="https://github.com/ami-iit/lie-group-controllers">https://github.com/ami-iit/lie-group-controllers</ulink> if you are interested in the implementation of the PD controllers. </para>
 </simplesect>
 </para>
     </detaileddescription>

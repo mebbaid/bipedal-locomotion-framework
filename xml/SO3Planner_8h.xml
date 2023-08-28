@@ -2,30 +2,37 @@
 <doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
   <compounddef id="SO3Planner_8h" kind="file" language="C++">
     <compoundname>SO3Planner.h</compoundname>
+    <includes local="no">chrono</includes>
     <includes local="no">manif/SO3.h</includes>
     <includes refid="Source_8h" local="no">BipedalLocomotion/System/Source.h</includes>
     <includes local="no">BipedalLocomotion/Planners/SO3Planner.tpp</includes>
     <includedby refid="SwingFootPlanner_8h" local="no">BipedalLocomotion/Planners/SwingFootPlanner.h</includedby>
     <incdepgraph>
-      <node id="4">
+      <node id="5">
         <label>BipedalLocomotion/System/Advanceable.h</label>
         <link refid="Advanceable_8h"/>
-        <childnode refid="5" relation="include">
-        </childnode>
         <childnode refid="6" relation="include">
         </childnode>
-      </node>
-      <node id="5">
-        <label>variant</label>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
       </node>
       <node id="6">
+        <label>variant</label>
+      </node>
+      <node id="7">
         <label>BipedalLocomotion/ParametersHandler/IParametersHandler.h</label>
         <link refid="IParametersHandler_8h"/>
-        <childnode refid="7" relation="include">
+        <childnode refid="2" relation="include">
         </childnode>
         <childnode refid="8" relation="include">
         </childnode>
         <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
         </childnode>
       </node>
       <node id="1">
@@ -35,28 +42,41 @@
         </childnode>
         <childnode refid="3" relation="include">
         </childnode>
-        <childnode refid="10" relation="include">
-        </childnode>
-      </node>
-      <node id="3">
-        <label>BipedalLocomotion/System/Source.h</label>
-        <link refid="Source_8h"/>
         <childnode refid="4" relation="include">
         </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
       </node>
-      <node id="8">
-        <label>string</label>
-      </node>
-      <node id="10">
-        <label>BipedalLocomotion/Planners/SO3Planner.tpp</label>
+      <node id="4">
+        <label>BipedalLocomotion/System/Source.h</label>
+        <link refid="Source_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
       </node>
       <node id="9">
+        <label>string</label>
+      </node>
+      <node id="13">
+        <label>BipedalLocomotion/Planners/SO3Planner.tpp</label>
+      </node>
+      <node id="10">
         <label>vector</label>
       </node>
-      <node id="2">
+      <node id="12">
+        <label>BipedalLocomotion/System/OutputPort.h</label>
+        <link refid="OutputPort_8h"/>
+      </node>
+      <node id="3">
         <label>manif/SO3.h</label>
       </node>
-      <node id="7">
+      <node id="2">
+        <label>chrono</label>
+      </node>
+      <node id="11">
+        <label>BipedalLocomotion/System/InputPort.h</label>
+        <link refid="InputPort_8h"/>
+      </node>
+      <node id="8">
         <label>memory</label>
       </node>
     </incdepgraph>
@@ -74,6 +94,8 @@
     </invincdepgraph>
     <innerclass refid="structBipedalLocomotion_1_1Planners_1_1SO3PlannerState" prot="public">BipedalLocomotion::Planners::SO3PlannerState</innerclass>
     <innerclass refid="classBipedalLocomotion_1_1Planners_1_1SO3Planner" prot="public">BipedalLocomotion::Planners::SO3Planner</innerclass>
+    <innerclass refid="structBipedalLocomotion_1_1Planners_1_1SO3Planner_1_1Polynomial" prot="private">BipedalLocomotion::Planners::SO3Planner::Polynomial</innerclass>
+    <innerclass refid="structBipedalLocomotion_1_1Planners_1_1SO3Planner_1_1BoundaryConditions" prot="private">BipedalLocomotion::Planners::SO3Planner::BoundaryConditions</innerclass>
     <innernamespace refid="namespaceBipedalLocomotion">BipedalLocomotion</innernamespace>
     <innernamespace refid="namespaceBipedalLocomotion_1_1Planners">BipedalLocomotion::Planners</innernamespace>
       <sectiondef kind="enum">
@@ -101,7 +123,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="BipedalLocomotion/Planners/SO3Planner.h" line="23" column="1" bodyfile="BipedalLocomotion/Planners/SO3Planner.h" bodystart="24" bodyend="27"/>
+        <location file="BipedalLocomotion/Planners/SO3Planner.h" line="24" column="1" bodyfile="BipedalLocomotion/Planners/SO3Planner.h" bodystart="25" bodyend="28"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="typedef">
@@ -117,7 +139,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="BipedalLocomotion/Planners/SO3Planner.h" line="146" column="1" bodyfile="BipedalLocomotion/Planners/SO3Planner.h" bodystart="146" bodyend="-1"/>
+        <location file="BipedalLocomotion/Planners/SO3Planner.h" line="221" column="1" bodyfile="BipedalLocomotion/Planners/SO3Planner.h" bodystart="221" bodyend="-1"/>
       </memberdef>
       <memberdef kind="typedef" id="SO3Planner_8h_1a89d591b2acb67115a659156984eef104" prot="public" static="no">
         <type>SO3Planner&lt; LieGroupTrivialization::Left &gt;</type>
@@ -131,7 +153,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="BipedalLocomotion/Planners/SO3Planner.h" line="152" column="1" bodyfile="BipedalLocomotion/Planners/SO3Planner.h" bodystart="152" bodyend="-1"/>
+        <location file="BipedalLocomotion/Planners/SO3Planner.h" line="227" column="1" bodyfile="BipedalLocomotion/Planners/SO3Planner.h" bodystart="227" bodyend="-1"/>
       </memberdef>
       </sectiondef>
     <briefdescription>
@@ -139,7 +161,7 @@
     <detaileddescription>
 <para><simplesect kind="authors"><para>Giulio Romualdi </para>
 </simplesect>
-<simplesect kind="copyright"><para>2020 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the GNU Lesser General Public License v2.1 or any later version. </para>
+<simplesect kind="copyright"><para>2020 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the BSD-3-Clause license. </para>
 </simplesect>
 </para>
     </detaileddescription>

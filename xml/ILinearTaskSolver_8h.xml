@@ -7,28 +7,35 @@
     <includes local="no">string</includes>
     <includes local="no">type_traits</includes>
     <includes local="no">Eigen/Dense</includes>
-    <includes local="no">iDynTree/Core/MatrixView.h</includes>
     <includes refid="IParametersHandler_8h" local="no">BipedalLocomotion/ParametersHandler/IParametersHandler.h</includes>
     <includes refid="LinearTask_8h" local="no">BipedalLocomotion/System/LinearTask.h</includes>
+    <includes refid="OutputPort_8h" local="no">BipedalLocomotion/System/OutputPort.h</includes>
     <includes refid="Source_8h" local="no">BipedalLocomotion/System/Source.h</includes>
     <includes refid="VariablesHandler_8h" local="no">BipedalLocomotion/System/VariablesHandler.h</includes>
     <includedby refid="IntegrationBasedIK_8h" local="no">BipedalLocomotion/IK/IntegrationBasedIK.h</includedby>
+    <includedby refid="QPInverseKinematics_8h" local="no">BipedalLocomotion/IK/QPInverseKinematics.h</includedby>
     <includedby refid="TaskSpaceInverseDynamics_8h" local="no">BipedalLocomotion/TSID/TaskSpaceInverseDynamics.h</includedby>
     <incdepgraph>
-      <node id="15">
+      <node id="17">
         <label>BipedalLocomotion/System/Advanceable.h</label>
         <link refid="Advanceable_8h"/>
-        <childnode refid="16" relation="include">
+        <childnode refid="18" relation="include">
         </childnode>
-        <childnode refid="8" relation="include">
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
         </childnode>
       </node>
-      <node id="16">
+      <node id="18">
         <label>variant</label>
       </node>
-      <node id="8">
+      <node id="7">
         <label>BipedalLocomotion/ParametersHandler/IParametersHandler.h</label>
         <link refid="IParametersHandler_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
         <childnode refid="2" relation="include">
         </childnode>
         <childnode refid="4" relation="include">
@@ -36,10 +43,10 @@
         <childnode refid="9" relation="include">
         </childnode>
       </node>
-      <node id="14">
+      <node id="16">
         <label>BipedalLocomotion/System/Source.h</label>
         <link refid="Source_8h"/>
-        <childnode refid="15" relation="include">
+        <childnode refid="17" relation="include">
         </childnode>
       </node>
       <node id="4">
@@ -60,27 +67,27 @@
         </childnode>
         <childnode refid="7" relation="include">
         </childnode>
-        <childnode refid="8" relation="include">
-        </childnode>
         <childnode refid="10" relation="include">
         </childnode>
-        <childnode refid="14" relation="include">
+        <childnode refid="15" relation="include">
         </childnode>
-        <childnode refid="11" relation="include">
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
         </childnode>
       </node>
-      <node id="11">
+      <node id="12">
         <label>BipedalLocomotion/System/VariablesHandler.h</label>
         <link refid="VariablesHandler_8h"/>
-        <childnode refid="12" relation="include">
+        <childnode refid="13" relation="include">
         </childnode>
         <childnode refid="4" relation="include">
         </childnode>
         <childnode refid="2" relation="include">
         </childnode>
-        <childnode refid="13" relation="include">
+        <childnode refid="14" relation="include">
         </childnode>
-        <childnode refid="8" relation="include">
+        <childnode refid="7" relation="include">
         </childnode>
       </node>
       <node id="10">
@@ -92,11 +99,11 @@
         </childnode>
         <childnode refid="6" relation="include">
         </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
         <childnode refid="7" relation="include">
         </childnode>
-        <childnode refid="8" relation="include">
-        </childnode>
-        <childnode refid="11" relation="include">
+        <childnode refid="12" relation="include">
         </childnode>
       </node>
       <node id="6">
@@ -108,16 +115,27 @@
       <node id="9">
         <label>vector</label>
       </node>
-      <node id="12">
-        <label>cstddef</label>
+      <node id="15">
+        <label>BipedalLocomotion/System/OutputPort.h</label>
+        <link refid="OutputPort_8h"/>
       </node>
       <node id="13">
+        <label>cstddef</label>
+      </node>
+      <node id="14">
         <label>unordered_map</label>
+      </node>
+      <node id="8">
+        <label>chrono</label>
+      </node>
+      <node id="19">
+        <label>BipedalLocomotion/System/InputPort.h</label>
+        <link refid="InputPort_8h"/>
       </node>
       <node id="5">
         <label>type_traits</label>
       </node>
-      <node id="7">
+      <node id="11">
         <label>iDynTree/Core/MatrixView.h</label>
       </node>
       <node id="2">
@@ -126,10 +144,16 @@
     </incdepgraph>
     <invincdepgraph>
       <node id="3">
+        <label>BipedalLocomotion/IK/QPFixedBaseInverseKinematics.h</label>
+        <link refid="QPFixedBaseInverseKinematics_8h"/>
+      </node>
+      <node id="4">
         <label>BipedalLocomotion/IK/QPInverseKinematics.h</label>
         <link refid="QPInverseKinematics_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
       </node>
-      <node id="6">
+      <node id="7">
         <label>BipedalLocomotion/TSID/QPFixedBaseTSID.h</label>
         <link refid="QPFixedBaseTSID_8h"/>
       </node>
@@ -140,11 +164,13 @@
         </childnode>
         <childnode refid="4" relation="include">
         </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
       </node>
-      <node id="4">
+      <node id="5">
         <label>BipedalLocomotion/TSID/TaskSpaceInverseDynamics.h</label>
         <link refid="TaskSpaceInverseDynamics_8h"/>
-        <childnode refid="5" relation="include">
+        <childnode refid="6" relation="include">
         </childnode>
       </node>
       <node id="2">
@@ -152,23 +178,41 @@
         <link refid="IntegrationBasedIK_8h"/>
         <childnode refid="3" relation="include">
         </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
       </node>
-      <node id="5">
+      <node id="6">
         <label>BipedalLocomotion/TSID/QPTSID.h</label>
         <link refid="QPTSID_8h"/>
-        <childnode refid="6" relation="include">
+        <childnode refid="7" relation="include">
         </childnode>
       </node>
     </invincdepgraph>
     <innerclass refid="classBipedalLocomotion_1_1System_1_1ILinearTaskSolver" prot="public">BipedalLocomotion::System::ILinearTaskSolver</innerclass>
     <innernamespace refid="namespaceBipedalLocomotion">BipedalLocomotion</innernamespace>
     <innernamespace refid="namespaceBipedalLocomotion_1_1System">BipedalLocomotion::System</innernamespace>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="ILinearTaskSolver_8h_1aa0b9c4f50fc80885f1a6401dba73ad50" prot="public" static="no">
+        <type>OutputPort&lt; Eigen::VectorXd &gt;</type>
+        <definition>using BipedalLocomotion::System::WeightProviderPort = typedef OutputPort&lt;Eigen::VectorXd&gt;</definition>
+        <argsstring></argsstring>
+        <name>WeightProviderPort</name>
+        <briefdescription>
+<para>WeightProviderPort port representing the weight. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="BipedalLocomotion/System/ILinearTaskSolver.h" line="32" column="1" bodyfile="BipedalLocomotion/System/ILinearTaskSolver.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
     <briefdescription>
     </briefdescription>
     <detaileddescription>
 <para><simplesect kind="authors"><para>Giulio Romualdi </para>
 </simplesect>
-<simplesect kind="copyright"><para>2021 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the GNU Lesser General Public License v2.1 or any later version. </para>
+<simplesect kind="copyright"><para>2021 Istituto Italiano di Tecnologia (IIT). This software may be modified and distributed under the terms of the BSD-3-Clause license. </para>
 </simplesect>
 </para>
     </detaileddescription>
