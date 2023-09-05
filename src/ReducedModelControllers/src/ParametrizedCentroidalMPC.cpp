@@ -861,7 +861,7 @@ struct ParametrizedCentroidalMPC::Impl
                                                                                       force.size1(), force.size2());
 
                 double totalMass = 52.0102;
-                auto gravity = casadi::MX::zeros(3, 10);
+                auto gravity = casadi::MX::zeros(3, externalWrench.size2());
                 gravity(2, Sl()) = -9.81 * totalMass;
                 cost += this->weights.payloadWeight * casadi::MX::sumsqr(force -  gravity - 1/(8) * externalWrench);
 
