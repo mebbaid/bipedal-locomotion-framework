@@ -197,6 +197,7 @@ struct CentroidalMPC::Impl
         Eigen::Vector3d forceRateOfChange;
         double angularMomentum;
 
+        double forceSymmetryWeight;
         double payloadWeight;
     };
     Weights weights; /**< Settings */
@@ -344,6 +345,7 @@ struct CentroidalMPC::Impl
         ok = ok && ptr->getParameter("contact_position_weight", this->weights.contactPosition);
         ok = ok && ptr->getParameter("force_rate_of_change_weight", this->weights.forceRateOfChange);
         ok = ok && ptr->getParameter("angular_momentum_weight", this->weights.angularMomentum);
+        ok = ok && ptr->getParameter("force_symmetry", this->weights.forceSymmetryWeight);
         ok = ok && ptr->getParameter("payload_weight", this->weights.payloadWeight);
 
         // initialize the friction cone
@@ -669,7 +671,7 @@ struct CentroidalMPC::Impl
                              + casadi::MX::mtimes(z1(Sl(),0).T() , z2(Sl(),0)) <= 0.0);
 
         //this->opti.subject_to(casadi::MX::sqrt(casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0))) <= alpha);
-        this->opti.subject_to(angularMomentum(Sl(),0)  <= alpha * casadi::MX::ones(3));
+        this->opti.subject_to(angularMomentum(Sl(),1)  <= alpha * casadi::MX::ones(3));
 
         // footstep dynamics
         std::size_t contactIndex = 0;
@@ -776,7 +778,7 @@ struct CentroidalMPC::Impl
             {
                 auto forceRateOfChange = casadi::MX::diff(corner.force.T()).T();
 
-                cost += 10 * casadi::MX::sumsqr(corner.force - averageForce);
+                cost += this->weights.forceSymmetryWeight * casadi::MX::sumsqr(corner.force - averageForce);
 
                 cost += this->weights.forceRateOfChange(0)
                         * casadi::MX::sumsqr(forceRateOfChange(0, Sl()));
@@ -969,7 +971,7 @@ bool CentroidalMPC::advance()
         // the first output tell us if a contact is enabled
 
 
-      log()->info("actovation sequence {}", toEigen(*it));
+      log()->info("activation sequence {}", toEigen(*it));
 
         int index = toEigen(*it).size();
         const int size = toEigen(*it).size();
