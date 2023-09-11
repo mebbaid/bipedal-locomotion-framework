@@ -588,6 +588,7 @@ struct CentroidalMPC::Impl
 
         ipoptOptions["linear_solver"] = this->optiSettings.ipoptLinearSolver;
         casadiOptions["expand"] = true;
+        casadiOptions["error_on_fail"] = true;
 
         this->opti.solver("ipopt", casadiOptions, ipoptOptions);
     }
@@ -634,10 +635,10 @@ struct CentroidalMPC::Impl
         this->opti.subject_to(this->optiVariables.angularMomentumCurrent
                               == angularMomentum(Sl(), 0));
 
-
+        /*
         this->opti.subject_to(this->optiVariables.comCurrent(Sl(),0) - this->optiVariables.comReference(Sl(),0) == z1);
         this->opti.subject_to(10 * z1 + this->optiVariables.dcomCurrent == z2); // we assume mass = 1
-
+        */
 
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
@@ -653,18 +654,23 @@ struct CentroidalMPC::Impl
         this->opti.subject_to(extractFutureValuesFromState(dcom) == fullTrajectory[1]);
         this->opti.subject_to(extractFutureValuesFromState(angularMomentum) == fullTrajectory[2]);
 
-        /*
-        this->opti.subject_to(extractFutureValuesFromState(z1(Sl(), Sl(1, -10))) == fullTrajectory[0] - this->optiVariables.comReference);
-        this->opti.subject_to(extractFutureValuesFromState(z2(Sl(), Sl(1, -10))) == fullTrajectory[1] + 10 * (fullTrajectory[0] - this->optiVariables.comReference(Sl(), Sl(1, -10))));
-        */
+
+        this->opti.subject_to(z1 == com(Sl(),1) - this->optiVariables.comReference(Sl(), 1));
+        this->opti.subject_to(z2 == dcom(Sl(),1) + 10 * (com(Sl(),1) - this->optiVariables.comReference(Sl(), 1)));
+
 
         // stability constraint
 
-        const double alpha = 0.1;
+        const double alpha = 0.3;
+
+        /*
+        this->opti.subject_to(this->optiVariables.comCurrent(Sl(),0) - this->optiVariables.comReference(Sl(),1) == z1);
+        this->opti.subject_to(10 * z1 + this->optiVariables.dcomCurrent == z2); // we assume mass = 1
+        */
 
         this->opti.subject_to(casadi::MX::mtimes(z1(Sl(),0).T() , z1(Sl(),0))
                              + casadi::MX::mtimes(z2(Sl(),0).T() , z2(Sl(),0))
-                             + casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0)) > 0.0);
+                             + casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0)) >= 0.0);
 
         this->opti.subject_to(casadi::MX::mtimes(z1(Sl(),0).T() , z1(Sl(),0))
                              - casadi::MX::mtimes(z2(Sl(),0).T() , z2(Sl(),0))
