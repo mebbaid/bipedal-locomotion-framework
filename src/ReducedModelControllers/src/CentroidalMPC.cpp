@@ -666,17 +666,28 @@ struct CentroidalMPC::Impl
         /*
         this->opti.subject_to(this->optiVariables.comCurrent(Sl(),0) - this->optiVariables.comReference(Sl(),1) == z1);
         this->opti.subject_to(10 * z1 + this->optiVariables.dcomCurrent == z2); // we assume mass = 1
-        */
+
 
         this->opti.subject_to(casadi::MX::mtimes(z1(Sl(),0).T() , z1(Sl(),0))
                              + casadi::MX::mtimes(z2(Sl(),0).T() , z2(Sl(),0))
                              + casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0)) >= 0.0);
 
-        this->opti.subject_to(casadi::MX::mtimes(z1(Sl(),0).T() , z1(Sl(),0))
-                             - casadi::MX::mtimes(z2(Sl(),0).T() , z2(Sl(),0))
-                             + casadi::MX::mtimes(z1(Sl(),0).T() , z2(Sl(),0)) <= 0.0);
-
         //this->opti.subject_to(casadi::MX::sqrt(casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0))) <= alpha);
+        */
+
+        for (const auto& [key, contact] : this->optiVariables.contacts)
+        {
+            for (const auto& corner : contact.corners)
+            {
+                this->opti.subject_to(
+                    -casadi::MX::mtimes(z1(Sl(), 0).T(), z1(Sl(), 0))
+                        - casadi::MX::mtimes(z2(Sl(), 0).T(), z2(Sl(), 0))
+                        + casadi::MX::mtimes(z1(Sl(), 0).T(), z2(Sl(), 0))
+                        + casadi::MX::mtimes(z2(Sl(), 0).T(), corner.force(Sl(), 0))
+                    <= 0.0);
+            }
+        }
+
         this->opti.subject_to(angularMomentum(Sl(),1)  <= alpha * casadi::MX::ones(3));
 
         // footstep dynamics
