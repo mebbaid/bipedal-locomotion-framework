@@ -156,7 +156,7 @@ public:
      * Perform one control cycle.
      * @return True if the advance is successfull.
      */
-    bool advance() override;  
+    bool advance() override;
 
 private:
     /**
