@@ -396,7 +396,7 @@ struct StableCentroidalMPC::Impl
         casadi::MX com = casadi::MX::sym("com_in", 3);
         casadi::MX dcom = casadi::MX::sym("dcom_in", 3);
         casadi::MX angularMomentum = casadi::MX::sym("angular_momentum_in", 3);
-        
+
         casadi::MX thetaHat = casadi::MX::sym("theta_hat_in", 3);
         casadi::MX comReference = casadi::MX::sym("com_reference_in", 3);
 
@@ -792,7 +792,7 @@ struct StableCentroidalMPC::Impl
 
 
         this->opti.subject_to(angularMomentum(Sl(),1)  <= this->stableConstants.alpha * casadi::MX::ones(3));
-        
+
 
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {

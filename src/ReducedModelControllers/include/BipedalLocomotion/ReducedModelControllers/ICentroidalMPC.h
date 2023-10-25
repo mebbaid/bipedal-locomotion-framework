@@ -1,11 +1,11 @@
 /**
- * @file BaseCentroidalMPC.h
+ * @file ICentroidalMPC.h
  * @copyright 2023 Istituto Italiano di Tecnologia (IIT). This software may be modified and
  * distributed under the terms of the BSD-3-Clause license.
  */
 
-#ifndef BIPEDAL_LOCOMOTION_REDUCE_MODEL_CONTROLLERS_BASE_CENTROIDAL_MPC_H
-#define BIPEDAL_LOCOMOTION_REDUCE_MODEL_CONTROLLERS_BASE_CENTROIDAL_MPC_H
+#ifndef BIPEDAL_LOCOMOTION_REDUCE_MODEL_CONTROLLERS_ICENTROIDAL_MPC_H
+#define BIPEDAL_LOCOMOTION_REDUCE_MODEL_CONTROLLERS_ICENTROIDAL_MPC_H
 
 #include <map>
 #include <memory>
@@ -89,7 +89,7 @@ struct CentroidalMPCOutput
 };
 
 
-class BaseCentroidalMPC : public BipedalLocomotion::System::Source<CentroidalMPCOutput>
+class ICentroidalMPC : public BipedalLocomotion::System::Source<CentroidalMPCOutput>
 {
 public:
 
@@ -121,5 +121,5 @@ public:
 
 } // namespace ReducedModelControllers
 } // namespace BipedalLocomotion
-#endif // BIPEDAL_LOCOMOTION_REDUCE_MODEL_CONTROLLERS_BASE_CENTROIDAL_MPC_H
+#endif // BIPEDAL_LOCOMOTION_REDUCE_MODEL_CONTROLLERS_ICENTROIDAL_MPC_H
 

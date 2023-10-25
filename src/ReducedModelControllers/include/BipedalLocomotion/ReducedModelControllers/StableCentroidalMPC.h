@@ -17,14 +17,14 @@
 #include <BipedalLocomotion/Contacts/ContactPhaseList.h>
 #include <BipedalLocomotion/ParametersHandler/IParametersHandler.h>
 #include <BipedalLocomotion/System/Source.h>
-#include <BipedalLocomotion/ReducedModelControllers/BaseCentroidalMPC.h>
+#include <BipedalLocomotion/ReducedModelControllers/ICentroidalMPC.h>
 
 namespace BipedalLocomotion
 {
 namespace ReducedModelControllers
 {
 
-class StableCentroidalMPC : public  BaseCentroidalMPC
+class StableCentroidalMPC : public  ICentroidalMPC
 {
 public:
 

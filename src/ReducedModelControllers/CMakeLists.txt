@@ -8,7 +8,7 @@ if(FRAMEWORK_COMPILE_ReducedModelControllers)
 
   add_bipedal_locomotion_library(
     NAME                   ReducedModelControllers
-    PUBLIC_HEADERS         ${H_PREFIX}/BaseCentroidalMPC.h ${H_PREFIX}/CentroidalMPC.h ${H_PREFIX}/StableCentroidalMPC.h
+    PUBLIC_HEADERS         ${H_PREFIX}/ICentroidalMPC.h ${H_PREFIX}/CentroidalMPC.h ${H_PREFIX}/StableCentroidalMPC.h
     SOURCES                src/CentroidalMPC.cpp src/StableCentroidalMPC.cpp
     PUBLIC_LINK_LIBRARIES  Eigen3::Eigen BipedalLocomotion::ParametersHandler BipedalLocomotion::System BipedalLocomotion::Contacts
     PRIVATE_LINK_LIBRARIES casadi BipedalLocomotion::Math BipedalLocomotion::TextLogging BipedalLocomotion::CasadiConversions
