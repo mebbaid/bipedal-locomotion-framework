@@ -90,8 +90,6 @@ struct CentroidalMPCOutput
                                                     CentroidalMPC. */
 };
 
-
-
 class ICentroidalMPC : public BipedalLocomotion::System::Source<CentroidalMPCOutput>
 {
 public:
