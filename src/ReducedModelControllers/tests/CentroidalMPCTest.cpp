@@ -76,6 +76,8 @@ TEST_CASE("CentroidalMPC")
     handler->setParameter("contact_position_weight", 1e3);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
     handler->setParameter("angular_momentum_weight", 1e5);
+    handler->setParameter("force_symmetry", 10.0);
+    handler->setParameter("payload_weight", 0.0);
 
     CentroidalMPC mpc;
 

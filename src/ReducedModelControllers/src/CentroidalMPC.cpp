@@ -157,8 +157,7 @@ struct CentroidalMPC::Impl
         /**< Optimization variables from the adaptive redesign*/
         casadi::MX z1;
         casadi::MX z2;
-        //casadi::MX eta; this is the same as the angularMomentum
-        //casadi::MX k2;
+        casadi::MX thetaHat;
 
         casadi::MX comReference;
         casadi::MX comCurrent;
@@ -207,6 +206,13 @@ struct CentroidalMPC::Impl
         Eigen::Vector3d upperLimit;
         Eigen::Vector3d lowerLimit;
     };
+
+    struct StableConstants
+    {
+        const double alpha = 0.5;
+        const double k1 = 10.0;
+    };
+    StableConstants stableConstants;
 
     std::unordered_map<std::string, ContactBoundingBox> contactBoundingBoxes;
 
@@ -374,10 +380,15 @@ struct CentroidalMPC::Impl
         casadi::MX dcom = casadi::MX::sym("dcom", 3);
         casadi::MX angularMomentum = casadi::MX::sym("angular_momentum", 3);
 
+        casadi::MX thetaHat = casadi::MX::sym("theta_hat", 3);
+        casadi::MX comReference = casadi::MX::sym("com_reference", 3);
+
         casadi::MX externalForce = casadi::MX::sym("external_force", 3);
 
         casadi::MX ddcom = casadi::MX::sym("ddcom", 3);
         casadi::MX angularMomentumDerivative = casadi::MX::sym("angular_momentum_derivative", 3);
+
+        casadi::MX thetaHatDerivative = casadi::MX::sym("theta_hat_derivative", 3);
 
         casadi::DM gravity = casadi::DM::zeros(3);
         gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
@@ -385,7 +396,11 @@ struct CentroidalMPC::Impl
         ddcom = gravity + externalForce / mass;
         angularMomentumDerivative = casadi::DM::zeros(3);
 
+        thetaHatDerivative = - this->stableConstants.k1 * (com - comReference) + dcom; // thetaHatDot = -z_2 ,  assuming accelaration ref being zero
+
         std::vector<casadi::MX> input;
+        input.push_back(comReference);
+        input.push_back(thetaHat);
         input.push_back(externalForce);
         input.push_back(com);
         input.push_back(dcom);
@@ -416,12 +431,13 @@ struct CentroidalMPC::Impl
             }
         }
 
-        std::vector<std::string> outputName{"com", "dcom", "angular_momentum"};
+        std::vector<std::string> outputName{"com", "dcom", "angular_momentum", "theta_hat"};
         std::vector<casadi::MX> rhs{com + dcom * this->optiSettings.samplingTime,
                                     dcom + ddcom * this->optiSettings.samplingTime,
                                     angularMomentum
                                         + angularMomentumDerivative
-                                              * this->optiSettings.samplingTime};
+                                              * this->optiSettings.samplingTime,
+                                    thetaHat + thetaHatDerivative * this->optiSettings.samplingTime};
 
         for (const auto& [key, contact] : casadiContacts)
         {
@@ -470,6 +486,7 @@ struct CentroidalMPC::Impl
         this->controllerInputs.externalWrench = casadi::DM::zeros(vector3Size, //
                                                                   this->optiSettings.horizon);
 
+
         for (const auto& [key, contact] : this->state.contacts)
         {
             // The current position of the contact
@@ -511,6 +528,7 @@ struct CentroidalMPC::Impl
         // create the variables for the stability
         this->optiVariables.z1 = this->opti.variable(vector3Size);
         this->optiVariables.z2 = this->opti.variable(vector3Size);
+        this->optiVariables.thetaHat = this->opti.variable(vector3Size, stateHorizon);
 
         // the casadi contacts depends on the maximum number of contacts
         for (const auto& [key, contact] : this->state.contacts)
@@ -565,6 +583,7 @@ struct CentroidalMPC::Impl
         this->optiVariables.comReference = this->opti.parameter(vector3Size, stateHorizon);
         this->optiVariables.externalWrench = this->opti.parameter(vector3Size, //
                                                                   this->optiSettings.horizon);
+
     }
 
     /**
@@ -609,9 +628,13 @@ struct CentroidalMPC::Impl
         auto& z1 = this->optiVariables.z1;
         auto& z2 = this->optiVariables.z2;
 
+        auto& thetaHat = this->optiVariables.thetaHat;
+        auto& comReference = this->optiVariables.comReference;
 
         // prepare the input of the ode
         std::vector<casadi::MX> odeInput;
+        odeInput.push_back(comReference(Sl(), Sl(0, -1)));
+        odeInput.push_back(thetaHat(Sl(), Sl(0, -1)));
         odeInput.push_back(externalWrench);
         odeInput.push_back(com(Sl(), Sl(0, -1)));
         odeInput.push_back(dcom(Sl(), Sl(0, -1)));
@@ -635,46 +658,34 @@ struct CentroidalMPC::Impl
         this->opti.subject_to(this->optiVariables.angularMomentumCurrent
                               == angularMomentum(Sl(), 0));
 
-        /*
-        this->opti.subject_to(this->optiVariables.comCurrent(Sl(),0) - this->optiVariables.comReference(Sl(),0) == z1);
-        this->opti.subject_to(10 * z1 + this->optiVariables.dcomCurrent == z2); // we assume mass = 1
-        */
+        auto thetaHatCurrent = thetaHat(Sl(), 0);
 
-        for (const auto& [key, contact] : this->optiVariables.contacts)
-        {
-            this->opti.subject_to(this->optiVariables.contacts.at(key).currentPosition
-                                  == contact.position(Sl(), 0));
-        }
 
-        // set the dynamics
-        // map computes the multiple shooting method
-        auto dynamics = this->ode().map(this->optiSettings.horizon);
-        auto fullTrajectory = dynamics(odeInput);
-        this->opti.subject_to(extractFutureValuesFromState(com) == fullTrajectory[0]);
-        this->opti.subject_to(extractFutureValuesFromState(dcom) == fullTrajectory[1]);
-        this->opti.subject_to(extractFutureValuesFromState(angularMomentum) == fullTrajectory[2]);
-
+        // stability constraints
 
         this->opti.subject_to(z1 == com(Sl(),1) - this->optiVariables.comReference(Sl(), 1));
-        this->opti.subject_to(z2 == dcom(Sl(),1) + 10 * (com(Sl(),1) - this->optiVariables.comReference(Sl(), 1)));
+        this->opti.subject_to(z2 == dcom(Sl(),1) +   this->stableConstants.k1 * (com(Sl(),1) - this->optiVariables.comReference(Sl(), 1)));
+        casadi::DM gravity = casadi::DM::zeros(3);
+        gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
+        auto u_adaptive = -2 * this->stableConstants.k1 * z2 + (this->stableConstants.k1 * this->stableConstants.k1) * z1 - gravity - thetaHatCurrent ; // assuming accelaration ref zero
 
-
-        // stability constraint
-
-        const double alpha = 0.3;
-
+        casadi::MX averageForce;
+        for (const auto& [key, contact] : this->optiVariables.contacts)
+        {
+            averageForce = casadi::MX::vertcat(
+                {contact.isEnable * contact.corners[0].force(0, Sl()) / contact.corners.size(),
+                 contact.isEnable * contact.corners[0].force(1, Sl()) / contact.corners.size(),
+                 contact.isEnable * contact.corners[0].force(2, Sl()) / contact.corners.size()});
+            for (int i = 1; i < contact.corners.size(); i++)
+            {
+                averageForce += casadi::MX::vertcat(
+                    {contact.isEnable * contact.corners[i].force(0, Sl()) / contact.corners.size(),
+                     contact.isEnable * contact.corners[i].force(1, Sl()) / contact.corners.size(),
+                     contact.isEnable * contact.corners[i].force(2, Sl())
+                         / contact.corners.size()});
+            }
+        }
         /*
-        this->opti.subject_to(this->optiVariables.comCurrent(Sl(),0) - this->optiVariables.comReference(Sl(),1) == z1);
-        this->opti.subject_to(10 * z1 + this->optiVariables.dcomCurrent == z2); // we assume mass = 1
-
-
-        this->opti.subject_to(casadi::MX::mtimes(z1(Sl(),0).T() , z1(Sl(),0))
-                             + casadi::MX::mtimes(z2(Sl(),0).T() , z2(Sl(),0))
-                             + casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0)) >= 0.0);
-
-        //this->opti.subject_to(casadi::MX::sqrt(casadi::MX::mtimes(angularMomentum(Sl(),0).T() , angularMomentum(Sl(),0))) <= alpha);
-        */
-
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
             for (const auto& corner : contact.corners)
@@ -683,20 +694,37 @@ struct CentroidalMPC::Impl
                     -casadi::MX::mtimes(z1(Sl(), 0).T(), z1(Sl(), 0))
                         - casadi::MX::mtimes(z2(Sl(), 0).T(), z2(Sl(), 0))
                         + casadi::MX::mtimes(z1(Sl(), 0).T(), z2(Sl(), 0))
-                        + casadi::MX::mtimes(z2(Sl(), 0).T(), corner.force(Sl(), 0))
+                        + casadi::MX::mtimes(z2(Sl(), 0).T(), averageForce - u_adaptive)
                     <= 0.0);
             }
         }
 
-        this->opti.subject_to(angularMomentum(Sl(),1)  <= alpha * casadi::MX::ones(3));
+        this->opti.subject_to(casadi::MX::mtimes(angularMomentum(Sl(),1).T() , angularMomentum(Sl(),1))  <= this->stableConstants.alpha );
+        */
+        // set the dynamics
+        // map computes the multiple shooting method
+        auto dynamics = this->ode().map(this->optiSettings.horizon);
+        auto fullTrajectory = dynamics(odeInput);
+        this->opti.subject_to(extractFutureValuesFromState(com) == fullTrajectory[0]);
+        this->opti.subject_to(extractFutureValuesFromState(dcom) == fullTrajectory[1]);
+        this->opti.subject_to(extractFutureValuesFromState(angularMomentum) == fullTrajectory[2]);
+        this->opti.subject_to(extractFutureValuesFromState(thetaHat) == fullTrajectory[3]);
+
 
         // footstep dynamics
         std::size_t contactIndex = 0;
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
             this->opti.subject_to(extractFutureValuesFromState(contact.position)
-                                  == fullTrajectory[3 + contactIndex]);
+                                  == fullTrajectory[4 + contactIndex]);
             contactIndex++;
+        }
+
+
+        for (const auto& [key, contact] : this->optiVariables.contacts)
+        {
+            this->opti.subject_to(this->optiVariables.contacts.at(key).currentPosition
+                                  == contact.position(Sl(), 0));
         }
 
         // add constraints for the contacts
@@ -751,8 +779,6 @@ struct CentroidalMPC::Impl
         }
 
         // create the cost function
-        auto& comReference = this->optiVariables.comReference;
-
         casadi::DM weightCoMZ = casadi::DM::zeros(1, com.columns());
         double min = this->weights.com(2)/2;
         for (int i = 0; i < com.columns(); i++)
@@ -772,24 +798,10 @@ struct CentroidalMPC::Impl
               + this->weights.com(1) * casadi::MX::sumsqr(com(1, Sl()) - comReference(1, Sl()))
               + casadi::MX::sumsqr(weightCoMZ * (com(2, Sl()) - comReference(2, Sl())));
 
-        casadi::MX averageForce;
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
             cost += this->weights.contactPosition
                     * casadi::MX::sumsqr(contact.nominalPosition - contact.position);
-
-            averageForce = casadi::MX::vertcat(
-                {contact.isEnable * contact.corners[0].force(0, Sl()) / contact.corners.size(),
-                 contact.isEnable * contact.corners[0].force(1, Sl()) / contact.corners.size(),
-                 contact.isEnable * contact.corners[0].force(2, Sl()) / contact.corners.size()});
-            for (int i = 1; i < contact.corners.size(); i++)
-            {
-                averageForce += casadi::MX::vertcat(
-                    {contact.isEnable * contact.corners[i].force(0, Sl()) / contact.corners.size(),
-                     contact.isEnable * contact.corners[i].force(1, Sl()) / contact.corners.size(),
-                     contact.isEnable * contact.corners[i].force(2, Sl())
-                         / contact.corners.size()});
-            }
 
             for (const auto& corner : contact.corners)
             {
