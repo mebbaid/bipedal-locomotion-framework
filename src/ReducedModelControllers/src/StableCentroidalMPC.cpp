@@ -43,8 +43,8 @@ struct StableCentroidalMPC::Impl
 
     struct StableConstants
     {
-        const double alpha = 0.1;
-        const double k1 = 10.0;
+        const double alpha = 0.3;
+        const double k1 = 3.0;
     };
     StableConstants stableConstants;
 
@@ -790,7 +790,7 @@ struct StableCentroidalMPC::Impl
                         + casadi::MX::mtimes(z2(Sl(), 0).T(), averageForce - u_adaptive)
                     <= 0.0);
 
-       this->opti.subject_to(casadi::MX::mtimes(angularMomentum(Sl(),1).T() , angularMomentum(Sl(),1))  <= this->stableConstants.alpha );
+        this->opti.subject_to(casadi::MX::mtimes(angularMomentum(Sl(),1).T() , angularMomentum(Sl(),1))  <= this->stableConstants.alpha );
 
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {

@@ -88,11 +88,11 @@ TEST_CASE("StableCentroidalMPC")
     constexpr bool saveDataset = true;
 
     using namespace std::chrono_literals;
-    constexpr std::chrono::nanoseconds dT = 100ms;
+    constexpr std::chrono::nanoseconds dT = 200ms;
 
     std::shared_ptr<IParametersHandler> handler = std::make_shared<StdImplementation>();
     handler->setParameter("sampling_time", dT);
-    handler->setParameter("time_horizon", 1s + 250ms);
+    handler->setParameter("time_horizon", 1s + 200ms);
     handler->setParameter("number_of_maximum_contacts", 2);
     handler->setParameter("number_of_slices", 1);
     handler->setParameter("static_friction_coefficient", 0.33);
@@ -123,7 +123,7 @@ TEST_CASE("StableCentroidalMPC")
     handler->setGroup("CONTACT_0", contact0Handler);
     handler->setGroup("CONTACT_1", contact1Handler);
 
-    handler->setParameter("com_weight", std::vector<double>{1, 1, 200});
+    handler->setParameter("com_weight", std::vector<double>{1, 1, 1000});
     handler->setParameter("contact_position_weight", 2e2);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
     handler->setParameter("angular_momentum_weight", 1e2);
