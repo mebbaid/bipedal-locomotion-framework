@@ -16,10 +16,11 @@
 #include <BipedalLocomotion/ContinuousDynamicalSystem/ForwardEuler.h>
 #include <BipedalLocomotion/ContinuousDynamicalSystem/LinearTimeInvariantSystem.h>
 #include <BipedalLocomotion/ContinuousDynamicalSystem/RK4.h>
+#include <BipedalLocomotion/ContinuousDynamicalSystem/ApproxExactIntegrator.h>
 
 using namespace BipedalLocomotion::ContinuousDynamicalSystem;
 
-TEST_CASE("Integrator - Linear system")
+TEST_CASE("Integrators - Linear system")
 {
     using namespace std::chrono_literals;
 
@@ -97,4 +98,25 @@ TEST_CASE("Integrator - Linear system")
             REQUIRE(integrator.integrate(0s, dT));
         }
     }
+
+    SECTION("Approximate exact integrator")
+    {
+        constexpr double tolerance = 1e-8;
+        ApproxExactIntegrator<LinearTimeInvariantSystem> integrator;
+        REQUIRE(integrator.setIntegrationStep(dT));
+        integrator.setDynamicalSystem(system);
+        integrator.setOrder(1);  // Should recover forward Euler
+        std::cout << integrator.m_order << std::endl;
+
+        for (int i = 0; i < simulationTime / dT; i++)
+        {
+            const auto& [solution] = integrator.getSolution();
+
+            REQUIRE(
+                solution.isApprox(closeFormSolution(std::chrono::duration<double>(dT * i).count()),
+                                  tolerance));
+            REQUIRE(integrator.integrate(0s, dT));
+        }
+    }
+
 }
