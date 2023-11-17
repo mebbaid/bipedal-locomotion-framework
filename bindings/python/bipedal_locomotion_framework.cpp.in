@@ -94,6 +94,14 @@
 #include<BipedalLocomotion/bindings/ReducedModelControllers/Module.h>
 @endcmakeiftarget BipedalLocomotion::ReducedModelControllers
 
+@cmakeiftarget BipedalLocomotion::SimplifiedModelControllers
+#include<BipedalLocomotion/bindings/SimplifiedModelControllers/Module.h>
+@endcmakeiftarget BipedalLocomotion::SimplifiedModelControllers
+
+@cmakeiftarget BipedalLocomotion::RobotDynamicsEstimator
+#include<BipedalLocomotion/bindings/RobotDynamicsEstimator/Module.h>
+@endcmakeiftarget BipedalLocomotion::RobotDynamicsEstimator
+
 // Create the Python module
 PYBIND11_MODULE(bindings, m)
 {
@@ -208,4 +216,14 @@ PYBIND11_MODULE(bindings, m)
     py::module reducedModelControllersModule = m.def_submodule("reduced_model_controllers");
     bindings::ReducedModelControllers::CreateModule(reducedModelControllersModule);
     @endcmakeiftarget BipedalLocomotion::ReducedModelControllers
+
+    @cmakeiftarget BipedalLocomotion::SimplifiedModelControllers
+    py::module simplifiedModelControllersModule = m.def_submodule("simplified_model_controllers");
+    bindings::SimplifiedModelControllers::CreateModule(simplifiedModelControllersModule);
+    @endcmakeiftarget BipedalLocomotion::SimplifiedModelControllers
+
+    @cmakeiftarget BipedalLocomotion::RobotDynamicsEstimator
+    py::module robotDynamicsEstimatorModule = m.def_submodule("robot_dynamics_estimator");
+    bindings::RobotDynamicsEstimator::CreateModule(robotDynamicsEstimatorModule);
+    @endcmakeiftarget BipedalLocomotion::RobotDynamicsEstimator
 }

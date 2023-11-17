@@ -1,7 +1,47 @@
 # Changelog
 All notable changes to this project are documented in this file.
 
-## [unreleased]
+## [0.16.1] - 2023-11-17
+### Changed
+- [ergoCubSN000] Update the YarpRobotLogger configuration file to be mpliant with robots-configuration v2.5.2 (https://github.com/ami-iit/bipedal-locomotion-framework/pull/763)
+
+### Fixed
+- Fixed compilation on Windows of fmt formatter for Eigen types (https://github.com/ami-iit/bipedal-locomotion-framework/pull/762)
+
+## [0.16.0] - 2023-11-15
+### Added
+- Add the possibility to control a subset of coordinates in `TSID::CoMTask` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/724, https://github.com/ami-iit/bipedal-locomotion-framework/pull/727)
+- Add the possibility to set the maximum number of accepted deadline miss in `System::AdvanceableRunner` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/726)
+- Add the `getControllerOutput` method to the `TSID::SE3Task` class (https://github.com/ami-iit/bipedal-locomotion-framework/pull/740)
+- Implement the python bindings for the `Wrench` class (https://github.com/ami-iit/bipedal-locomotion-framework/pull/716)
+- Implement the python bindings for the `SimplifiedModelControllers` components (https://github.com/ami-iit/bipedal-locomotion-framework/pull/716)
+- 🤖 Add the configuration files to use `YarpRobotLoggerDevice` with `ergoCubSN001` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/747)
+- Added the ``DistanceTask`` and ``GravityTask`` to the IK (https://github.com/ami-iit/bipedal-locomotion-framework/pull/717)
+- Add the possibility to control a subset of linear coordinates in `TSID::SE3Task` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/738)
+- Implement `GlobalCoPEvaluator` in `Contacts` component (https://github.com/ami-iit/bipedal-locomotion-framework/pull/745)
+- Implement `Wrench::getLocalCoP()` method (https://github.com/ami-iit/bipedal-locomotion-framework/pull/745)
+- Add tests for classes of `RobotDynamicsEstimator` library (https://github.com/ami-iit/bipedal-locomotion-framework/pull/743)
+- Implement inequality operator for the `PlannedContact` class (https://github.com/ami-iit/bipedal-locomotion-framework/pull/750)
+- Finalize `RobotDynamicsEstimator` library and add complete library test (https://github.com/ami-iit/bipedal-locomotion-framework/pull/744)
+- Add Python bindings for `RobotDynamicsEstimator` library (https://github.com/ami-iit/bipedal-locomotion-framework/pull/755)
+- Add possibility to set the regularization on the mass matrix for the `TSID::JointDynamicsTask` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/722)
+- Implement `RobotDynamicsEstimatorDevice` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/756)
+
+### Changed
+- Remove the possibility to disable the telemetry in `System::AdvanceableRunner` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/726)
+- Change implementation of classes used in `RobotDynamicsEstimator` to optimize performance (https://github.com/ami-iit/bipedal-locomotion-framework/pull/731)
+- CMake: Permit to explictly specify Python installation directory by setting the `FRAMEWORK_PYTHON_INSTALL_DIR` CMake variable (https://github.com/ami-iit/bipedal-locomotion-framework/pull/741)
+- Remove outdated tests for `RobotDynamicsEstimator` library (https://github.com/ami-iit/bipedal-locomotion-framework/pull/742)
+- Modify CI to install `RobotDynamicsEstimator` library (https://github.com/ami-iit/bipedal-locomotion-framework/pull/746)
+- Restructure the balancing-position-control script (https://github.com/ami-iit/bipedal-locomotion-framework/pull/716)
+- Avoid to download the robot and the network models if the tests are not enabled in `ML` component (https://github.com/ami-iit/bipedal-locomotion-framework/pull/749)
+- Update the CMakeLists.txt to be compliant with `Python 3.12` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/752)
+
+### Fixed
+- Fix timestamp logging for the cameras (https://github.com/ami-iit/bipedal-locomotion-framework/pull/748)
+- Fix missing include(FetchContent) in Python bindings CMake code (https://github.com/ami-iit/bipedal-locomotion-framework/pull/757)
+
+## [0.15.0] - 2023-09-05
 ### Added
 - Added the ``BaseCentroidalMPC`` and ``StableCentroidalMPC`` to the ReducedModelControllers component (https://github.com/ami-iit/bipedal-locomotion-framework/pull/703)
 - 🤖 Add the configuration files to use `YarpRobotLogger` with  `ergoCubGazeboV1` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/690)
@@ -19,9 +59,12 @@ All notable changes to this project are documented in this file.
 - Give the possibility to set an external wrench in the `CentroidalDynamics` instead of a pure force (https://github.com/ami-iit/bipedal-locomotion-framework/pull/705)
 - Use c version of `qhull` in the Planner component. This fixes the compatibility with PCL in ubuntu 20.04 (https://github.com/ami-iit/bipedal-locomotion-framework/pull/713)
 - Make `ICameraBridge::isValid()` virtual function (https://github.com/ami-iit/bipedal-locomotion-framework/pull/695)
+- icub-models 2.0.0 changed the name of the FT sensors in the iCub's URDF from being named `<identifier>_ft_sensor` (like `l_arm_ft_sensor`, `l_leg_ft_sensor`, ...) to `<identifier>_ft` (like `l_arm_ft`, `l_leg_ft`, ...). However, the yarprobotinterface configuration files in blf continued to refer to the sensors as `<identifier>_ft_sensor`, creating errors for software that was trying to match sensors find in URDF and sensors as exposed by the YARP's multipleanalogsensorsserver device. This PR changes all the instances of FT sensor names in iCub-related configuration files contained in blf to `<identifier>_ft`, restoring compatibility with icub-models 2.0.0, robots-configuration releases >= 2.5.0 and ergocub-software >= 0.3.4, see https://github.com/robotology/robots-configuration/pull/562 for more details (https://github.com/ami-iit/bipedal-locomotion-framework/pull/720)
+
 
 ### Fixed
 - Remove duplicated `find_package` in `BipedalLocomotionFrameworkDependencies.cmake` file (https://github.com/ami-iit/bipedal-locomotion-framework/pull/709)
+- Fix handling of feedforward acceleration in `BipedalLocomotion::TSID::JointTrackingTask::setSetPoint` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/719)
 
 ## [0.14.1] - 2023-07-07
 ### Fixed
@@ -442,7 +485,10 @@ All notable changes to this project are documented in this file.
 - Added `mas-imu-test` application to check the output of MAS IMUs (https://github.com/ami-iit/bipedal-locomotion-framework/pull/62)
 - Implement motor currents reading in `YarpSensorBridge`. (https://github.com/ami-iit/bipedal-locomotion-framework/pull/187)
 
-[unreleased]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.14.1...master
+[unreleased]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.16.1...master
+[0.16.1]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.16.0...v0.16.1
+[0.16.0]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.15.0...v0.16.0
+[0.15.0]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ami-iit/bipedal-locomotion-framework/compare/v0.12.0...v0.13.0

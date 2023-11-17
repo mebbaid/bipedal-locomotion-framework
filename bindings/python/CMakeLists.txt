@@ -18,6 +18,8 @@ add_subdirectory(YarpUtilities)
 add_subdirectory(ContinuousDynamicalSystem)
 add_subdirectory(ReducedModelControllers)
 add_subdirectory(ML)
+add_subdirectory(SimplifiedModelControllers)
+add_subdirectory(RobotDynamicsEstimator)
 
 include(ConfigureFileWithCMakeIfTarget)
 

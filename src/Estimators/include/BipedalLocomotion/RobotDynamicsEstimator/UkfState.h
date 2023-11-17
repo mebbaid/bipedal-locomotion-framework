@@ -8,18 +8,19 @@
 #ifndef BIPEDAL_LOCOMOTION_ESTIMATORS_UKF_STATE_H
 #define BIPEDAL_LOCOMOTION_ESTIMATORS_UKF_STATE_H
 
-#include <Eigen/Dense>
 #include <memory>
 #include <string>
+#include <Eigen/Dense>
 
 // BayesFilters
 #include <BayesFilters/AdditiveStateModel.h>
 
 // BLF
-#include <BipedalLocomotion/RobotDynamicsEstimator/Dynamics.h>
-#include <BipedalLocomotion/RobotDynamicsEstimator/SubModel.h>
-#include <BipedalLocomotion/RobotDynamicsEstimator/SubModelKinDynWrapper.h>
 #include <BipedalLocomotion/System/VariablesHandler.h>
+#include <BipedalLocomotion/RobotDynamicsEstimator/UkfModel.h>
+#include <BipedalLocomotion/RobotDynamicsEstimator/SubModel.h>
+#include <BipedalLocomotion/RobotDynamicsEstimator/KinDynWrapper.h>
+#include <BipedalLocomotion/RobotDynamicsEstimator/Dynamics.h>
 
 namespace BipedalLocomotion
 {
@@ -36,60 +37,46 @@ namespace RobotDynamicsEstimator
  * associated to the state. The user should set also a ukf input provider
  * which provides the inputs needed to update the ukf process dynamics.
  */
-class UkfState : public bfl::AdditiveStateModel
+class UkfState : public bfl::AdditiveStateModel, UkfModel
 {
-    /**
-     * Private implementation
-     */
-    struct Impl;
-    std::unique_ptr<Impl> m_pimpl;
+    Eigen::MatrixXd m_covarianceQ; /**< Covariance matrix. */
+    Eigen::MatrixXd  m_initialCovariance; /**< Initial covariance matrix. */
+    std::size_t m_stateSize; /**< Length of the state vector. */
+    Eigen::VectorXd m_nextState; /**< Vector containing all the updated states. */
 
 public:
-    /**
-     * Constructor.
-     */
-    UkfState();
-
-    /**
-     * Destructor.
-     */
-    virtual ~UkfState();
-
-    // clang-format off
     /**
      * Build the ukf state model
      * @param kinDyn a pointer to an iDynTree::KinDynComputations object that will be shared among
      * all the dynamics.
-     * @param subModelList a vector of pairs (SubModel, SubModelKinDynWrapper) that will be shared
-     * among all the dynamics.
+     * @param subModelList a vector of pairs (SubModel, KinDynWrapper) that will be shared among all the dynamics.
      * @param handler pointer to the IParametersHandler interface.
      * @note the following parameters are required by the class
-     * |         Parameter Name         |       Type      |                                              Description                                       | Mandatory |
+     * |         Parameter Name         |       Type      |                                           Description                                          | Mandatory |
      * |:------------------------------:|:---------------:|:----------------------------------------------------------------------------------------------:|:---------:|
-     * |              `dT`              |     `double`    |                                            Sampling time.                                      |    Yes    |
-     * |         `dynamics_list`        | `vector<string>`|                                          List of dynamics composing the state model.           |    Yes    |
-     *  For **each** dynamics listed in the parameter `dynamics_list` the user must specified all the parameters required
-     * by the dynamics itself but `dT` since is already specified in the parent group. Moreover the
-     * following parameters are required for each dynamics.
+     * |              `dT`              |     `double`    |                                      Sampling time.                                            |    Yes    |
+     * |         `dynamics_list`        |`vector<string>` |                          List of dynamics composing the state model.                           |    Yes    |
+     * For **each** dynamics listed in the parameter `dynamics_list` the user must specified all the parameters
+     * required by the dynamics itself but `dT` since is already specified in the parent group.
+     * Moreover the following parameters are required for each dynamics.
      * |     Group     |         Parameter Name         |         Type         |                                           Description                                          | Mandatory |
      * |:-------------:|:------------------------------:|:--------------------:|:----------------------------------------------------------------------------------------------:|:---------:|
-     * |`DYNAMICS_NAME`|             `name`             |        `string`      |                           String representing the name of the dynamics.                        |    Yes    |
-     * |`DYNAMICS_NAME`|           `elements`           |   `vector<string>`   |  Vector of strings
-     * |`DYNAMICS_NAME`|          `covariance`          |   `vector<double>`   |             Vector of double containing the covariance associated to each element.             |    Yes    |
-     * |`DYNAMICS_NAME`|         `dynamic_model`        |        `string`      |                                              String                                            |    Yes    |
-     * |`DYNAMICS_NAME`|          `friction_k0`         |   `vector<double>`   | Vector of double containing the coefficient k0 of the friction model of each element.          |    No     |
-     * |`DYNAMICS_NAME`|          `friction_k1`         |   `vector<double>`   | Vector of double containing the coefficient k1 of the friction model of each element.          |    No     |
-     * |`DYNAMICS_NAME`|          `friction_k2`         |   `vector<double>`   | Vector of double containing the coefficient k2 of the friction model of each element.          |    No     |
-     * `DYNAMICS_NAME` is a placeholder for the name of the dynamics contained in the
-     * `dynamics_list` list. `name` can contain only the following values ("ds", "tau_m", "tau_F",
-     * "*_ft_sensor", "*_ft_sensor_bias", "*_ft_acc_bias", "*_ftgyro_bias").
+     * |`DYNAMICS_NAME`|             `name`             |        `string`      |                               String representing the name of the dynamics.                    |    Yes    |
+     * |`DYNAMICS_NAME`|           `elements`           |`std::vector<string>` |  Vector of strings representing the elements composing the specific dynamics.                  |    No     |
+     * |`DYNAMICS_NAME`|          `covariance`          |`std::vector<double>` |             Vector of double containing the covariance associated to each element.             |    Yes    |
+     * |`DYNAMICS_NAME`|         `dynamic_model`        |        `string`      |  String representing the type of dynamics. The string should match the name of the C++ class.  |    Yes    |
+     * |`DYNAMICS_NAME`|          `friction_k0`         |`std::vector<double>` | Vector of double containing the coefficient k0 of the friction model of each element.          |    No     |
+     * |`DYNAMICS_NAME`|          `friction_k1`         |`std::vector<double>` | Vector of double containing the coefficient k1 of the friction model of each element.          |    No     |
+     * |`DYNAMICS_NAME`|          `friction_k2`         |`std::vector<double>` | Vector of double containing the coefficient k2 of the friction model of each element.          |    No     |
+     * `DYNAMICS_NAME` is a placeholder for the name of the dynamics contained in the `dynamics_list` list.
+     * `name` can contain only the following values ("ds", "tau_m", "tau_F", "*_ft_sensor", "*_ft_sensor_bias", "*_ft_acc_bias", "*_ftgyro_bias").
      * @note The following `ini` file presents an example of the configuration that can be used to
      * build the UkfState.
      *
-     * UkfState.ini
+     * \code{.ini}
+     * # UkfState.ini
      *
-     * dynamics_list                   ("JOINT_VELOCITY", "FRICTION_TORQUE", "RIGHT_LEG_FT",
-     * "RIGHT_FOOT_REAR_GYRO_BIAS")
+     * dynamics_list                   ("JOINT_VELOCITY", "FRICTION_TORQUE", "RIGHT_LEG_FT", "RIGHT_FOOT_REAR_GYRO_BIAS")
      *
      * [JOINT_VELOCITY]
      * name                            "ds"
@@ -118,29 +105,25 @@ public:
      * covariance                      (8.2e-8, 1e-2, 9.3e-3)
      * dynamic_model                   "ZeroVelocityStateDynamics"
      *
-     * ~~~~~
+     * \endcode
      * @return a std::unique_ptr to the UkfState.
      * In case of issues, an empty BipedalLocomotion::System::VariablesHandler
      * and an invalid pointer will be returned.
      */
-    // clang-format on
-    static std::unique_ptr<UkfState>
-    build(std::weak_ptr<const ParametersHandler::IParametersHandler> handler,
-          std::shared_ptr<iDynTree::KinDynComputations> kinDynFullModel,
-          const std::vector<SubModel>& subModelList,
-          const std::vector<std::shared_ptr<SubModelKinDynWrapper>>& kinDynWrapperList);
+    static std::unique_ptr<UkfState> build(std::weak_ptr<const ParametersHandler::IParametersHandler> handler,
+                                           std::shared_ptr<iDynTree::KinDynComputations> kinDynFullModel,
+                                           const std::vector<SubModel>& subModelList,
+                                           const std::vector<std::shared_ptr<KinDynWrapper>>& kinDynWrapperList);
 
-    // clang-format off
     /**
      * Initialize the ukf state model.
      * @param handler pointer to the IParametersHandler interface.
      * @note the following parameters are required by the class
-     * |         Parameter Name         |       Type      |                                       Description                                              | Mandatory |
-     * |:------------------------------:|:---------------:|:----------------------------------------------------------------------------------------------:|:---------:|
-     * |              `dT`              |     `double`    |                                      Sampling time.                                            |    Yes    |
+     * |         Parameter Name         |              Type                 |                             Description                                       | Mandatory |
+     * |:------------------------------:|:---------------------------------:|:-----------------------------------------------------------------------------:|:---------:|
+     * |       `sampling_time`          |     `std::chrono::nanoseconds`    |                            Sampling time.                                     |    Yes    |
      * @return True in case of success, false otherwise.
      */
-    // clang-format on
     bool initialize(std::weak_ptr<const ParametersHandler::IParametersHandler> handler);
 
     /**
@@ -153,30 +136,25 @@ public:
 
     /**
      * @brief setUkfInputProvider set the provider for the ukf input.
-     * @param ukfInputProvider a pointer to a structure containing the joint positions and the robot
-     * base pose, velocity and acceleration.
+     * @param ukfInputProvider a pointer to a structure containing the joint positions and the robot base pose, velocity and acceleration.
      */
     void setUkfInputProvider(std::shared_ptr<const UkfInputProvider> ukfInputProvider);
 
     /**
-     * @brief getStateVariableHandler access the `System::VariablesHandler` instance created during
-     * the initialization phase.
-     * @return the state variable handler containing all the state variables and their sizes and
-     * offsets.
+     * @brief getStateVariableHandler access the `System::VariablesHandler` instance created during the initialization phase.
+     * @return the state variable handler containing all the state variables and their sizes and offsets.
      */
-    System::VariablesHandler& getStateVariableHandler();
+    const System::VariablesHandler& getStateVariableHandler() const;
 
     /**
      * @brief propagate implements the prediction phase of the ukf
      * @param cur_states is the state computed at the previous step
      * @param prop_states is the predicted state
      */
-    void propagate(const Eigen::Ref<const Eigen::MatrixXd>& curStates,
-                   Eigen::Ref<Eigen::MatrixXd> propStates) override;
+    void propagate(const Eigen::Ref<const Eigen::MatrixXd>& currentStates, Eigen::Ref<Eigen::MatrixXd> propagatedStates) override;
 
     /**
-     * @brief getNoiseCovarianceMatrix access the `Eigen::MatrixXd` representing the process
-     * covariance matrix.
+     * @brief getNoiseCovarianceMatrix access the `Eigen::MatrixXd` representing the process covariance matrix.
      * @return the process noise covariance matrix.
      */
     Eigen::MatrixXd getNoiseCovarianceMatrix() override;
@@ -186,10 +164,7 @@ public:
      * @param property is a string.
      * @return false as it is not implemented.
      */
-    bool setProperty(const std::string& property) override
-    {
-        return false;
-    };
+    bool setProperty(const std::string& property) override;
 
     /**
      * @brief getStateDescription access the `bfl::VectorDescription`.
@@ -201,14 +176,13 @@ public:
      * @brief getStateSize access the length of the state vector.
      * @return the length of state vector.
      */
-    std::size_t getStateSize() const;
+    std::size_t getStateSize();
 
     /**
-     * @brief getInitialStateCovarianceMatrix access the `Eigen::MatrixXd` representing the initial
-     * state covariance matrix.
+     * @brief getInitialStateCovarianceMatrix access the `Eigen::MatrixXd` representing the initial state covariance matrix.
      * @return a Eigen reference to the Eigen Matrix covariance.
      */
-    Eigen::Ref<const Eigen::MatrixXd> getInitialStateCovarianceMatrix();
+    Eigen::Ref<const Eigen::MatrixXd> getInitialStateCovarianceMatrix() const;
 
 }; // class UKFModel
 

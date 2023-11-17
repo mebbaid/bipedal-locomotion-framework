@@ -8,12 +8,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators_all.hpp>
 
-#include <ConfigFolderPath.h>
-#include <iCubModels/iCubModels.h>
 #include <yarp/os/ResourceFinder.h>
 
-#include <BipedalLocomotion/ParametersHandler/IParametersHandler.h>
-#include <BipedalLocomotion/ParametersHandler/YarpImplementation.h>
 #include <BipedalLocomotion/ParametersHandler/StdImplementation.h>
 
 #include <BipedalLocomotion/RobotDynamicsEstimator/ZeroVelocityStateDynamics.h>
@@ -44,9 +40,9 @@ TEST_CASE("Zero Velocity Dynamics")
     REQUIRE(variableHandler.addVariable("ds", sizeVariable));
     REQUIRE(variableHandler.addVariable("tau_m", sizeVariable));
     REQUIRE(variableHandler.addVariable("tau_F", sizeVariable));
-    REQUIRE(variableHandler.addVariable("r_leg_ft_sensor", sizeVariable));
-    REQUIRE(variableHandler.addVariable("r_leg_ft_sensor_bias", sizeVariable));
-    REQUIRE(variableHandler.addVariable("r_foot_front_ft_sensor", sizeVariable));
+    REQUIRE(variableHandler.addVariable("r_leg_ft", sizeVariable));
+    REQUIRE(variableHandler.addVariable("r_leg_ft_bias", sizeVariable));
+    REQUIRE(variableHandler.addVariable("r_foot_front_ft", sizeVariable));
 
     ZeroVelocityStateDynamics tau_m;
 
@@ -59,8 +55,7 @@ TEST_CASE("Zero Velocity Dynamics")
         currentState(index) = GENERATE(take(1, random(-100, 100)));
     }
 
-    Eigen::VectorXd state;
-    state.resize(sizeVariable * variableHandler.getNumberOfVariables());
+    Eigen::VectorXd state(sizeVariable * variableHandler.getNumberOfVariables());
     state.setZero();
     state.segment(variableHandler.getVariable("tau_m").offset, variableHandler.getVariable("tau_m").size) = currentState;
 
