@@ -146,6 +146,10 @@ struct CentroidalMPC::Impl
         std::string solverName{"ipopt"}; /**< Name of the solver used by the MPC. */
         bool isJITEnabled{false}; /**< True if the JIT compilation is enabled. */
         int numberOfQPIterations{10}; /**< Number of QP iteration. */
+
+        std::string solverName{"ipopt"}; /**< Name of the solver used by the MPC. */
+        bool isJITEnabled{false}; /**< True if the JIT compilation is enabled. */
+        int numberOfQPIterations{10}; /**< Number of QP iteration. */
     };
 
     OptimizationSettings optiSettings; /**< Settings */
@@ -199,8 +203,15 @@ struct CentroidalMPC::Impl
         std::vector<casadi::DM*> contactForce;
     };
 
+    struct ContactInitialGuess
+    {
+        casadi::DM* contactLocation;
+        std::vector<casadi::DM*> contactForce;
+    };
+
     struct InitialGuess
     {
+        std::map<std::string, ContactInitialGuess> contactsInitialGuess;
         std::map<std::string, ContactInitialGuess> contactsInitialGuess;
 
         casadi::DM* com;
@@ -388,6 +399,33 @@ struct CentroidalMPC::Impl
                                  this->optiSettings.numberOfQPIterations);
         }
 
+        ok = ok && getParameter(ptr, "solver_name", this->optiSettings.solverName);
+        if (!ok)
+        {
+            return false;
+        }
+        if (this->optiSettings.solverName != "ipopt" && this->optiSettings.solverName != "sqp")
+        {
+            log()->error("{} The solver name '{}' is not supported. The supported solvers are "
+                         "'ipopt' and 'sqp'.",
+                         logPrefix,
+                         this->optiSettings.solverName);
+            return false;
+        }
+
+        if (this->optiSettings.solverName == "ipopt")
+        {
+            getOptionalParameter(ptr, "linear_solver", this->optiSettings.ipoptLinearSolver);
+            getOptionalParameter(ptr, "ipopt_tolerance", this->optiSettings.ipoptTolerance);
+            getOptionalParameter(ptr, "ipopt_max_iteration", this->optiSettings.ipoptMaxIteration);
+        } else
+        {
+            getOptionalParameter(ptr, "jit_compilation", this->optiSettings.isJITEnabled);
+            getOptionalParameter(ptr,
+                                 "number_of_qp_iterations",
+                                 this->optiSettings.numberOfQPIterations);
+        }
+
         getOptionalParameter(ptr, "solver_verbosity", this->optiSettings.solverVerbosity);
         getOptionalParameter(ptr, "is_warm_start_enabled", this->optiSettings.isWarmStartEnabled);
         getOptionalParameter(ptr, "is_cse_enabled", this->optiSettings.isCseEnabled);
@@ -531,6 +569,15 @@ struct CentroidalMPC::Impl
                     vectorizedOptiInputsSize += 1;
                 }
             }
+
+            for (const auto& [key, contact] : this->output.contacts)
+            {
+                for (const auto& corner : contact.corners)
+                {
+                    // for each corner we have the force
+                    vectorizedOptiInputsSize += 1;
+                }
+            }
         }
 
         // we reserve in advance so the push_back will not invalidate the pointers
@@ -609,6 +656,16 @@ struct CentroidalMPC::Impl
             if (this->optiSettings.isWarmStartEnabled)
             {
                 this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, stateHorizon));
+                this->initialGuess.contactsInitialGuess[key].contactLocation
+                    = &this->vectorizedOptiInputs.back();
+
+                for (const auto& corner : contact.corners)
+                {
+                    this->vectorizedOptiInputs.push_back(
+                        casadi::DM::zeros(vector3Size, this->optiSettings.horizon));
+                    this->initialGuess.contactsInitialGuess[key].contactForce.push_back(
+                        &this->vectorizedOptiInputs.back());
+                }
                 this->initialGuess.contactsInitialGuess[key].contactLocation
                     = &this->vectorizedOptiInputs.back();
 
@@ -714,13 +771,76 @@ struct CentroidalMPC::Impl
                 solverOptions["print_level"] = 0;
                 casadiOptions["print_time"] = false;
             }
+        casadi::Dict solverOptions;
+        if (this->optiSettings.solverName == "ipopt")
+        {
+            if (this->optiSettings.solverVerbosity != 0)
+            {
+                casadi_int ipoptVerbosity
+                    = static_cast<long long>(optiSettings.solverVerbosity - 1);
+                solverOptions["print_level"] = ipoptVerbosity;
+                casadiOptions["print_time"] = true;
+            } else
+            {
+                solverOptions["print_level"] = 0;
+                casadiOptions["print_time"] = false;
+            }
 
             solverOptions["max_iter"] = this->optiSettings.ipoptMaxIteration;
             solverOptions["tol"] = this->optiSettings.ipoptTolerance;
             solverOptions["linear_solver"] = this->optiSettings.ipoptLinearSolver;
             casadiOptions["expand"] = true;
             casadiOptions["error_on_fail"] = true;
+            solverOptions["max_iter"] = this->optiSettings.ipoptMaxIteration;
+            solverOptions["tol"] = this->optiSettings.ipoptTolerance;
+            solverOptions["linear_solver"] = this->optiSettings.ipoptLinearSolver;
+            casadiOptions["expand"] = true;
+            casadiOptions["error_on_fail"] = true;
 
+            this->opti.solver("ipopt", casadiOptions, solverOptions);
+            return;
+        }
+
+        // if not ipopt it is sqpmethod
+        casadi::Dict osqpOptions;
+        if (this->optiSettings.solverVerbosity != 0)
+        {
+            casadiOptions["print_header"] = true;
+            casadiOptions["print_iteration"] = true;
+            casadiOptions["print_status"] = true;
+            casadiOptions["print_time"] = true;
+            osqpOptions["verbose"] = true;
+        } else
+        {
+            casadiOptions["print_header"] = false;
+            casadiOptions["print_iteration"] = false;
+            casadiOptions["print_status"] = false;
+            casadiOptions["print_time"] = false;
+            osqpOptions["verbose"] = false;
+        }
+        casadiOptions["error_on_fail"] = false;
+        casadiOptions["expand"] = true;
+        casadiOptions["qpsol"] = "osqp";
+
+        solverOptions["error_on_fail"] = false;
+
+        osqpOptions["verbose"] = false;
+        solverOptions["osqp"] = osqpOptions;
+
+        casadiOptions["qpsol_options"] = solverOptions;
+        casadiOptions["max_iter"] = this->optiSettings.numberOfQPIterations;
+
+        if (this->optiSettings.isJITEnabled)
+        {
+            casadiOptions["jit"] = true;
+            casadiOptions["compiler"] = "shell";
+
+            casadi::Dict jitOptions;
+            jitOptions["flags"] = {"-O3"};
+            jitOptions["verbose"] = true;
+            casadiOptions["jit_options"] = jitOptions;
+        }
+        this->opti.solver("sqpmethod", casadiOptions);
             this->opti.solver("ipopt", casadiOptions, solverOptions);
             return;
         }
@@ -968,6 +1088,8 @@ struct CentroidalMPC::Impl
 
         // if warm start is enabled we need to add the initial guess for the com and the angular
         // momentum
+        // if warm start is enabled we need to add the initial guess for the com and the angular
+        // momentum
         if (this->optiSettings.isWarmStartEnabled)
         {
             concatenateInput(this->optiVariables.com, "com_warmstart");
@@ -987,9 +1109,20 @@ struct CentroidalMPC::Impl
 
             // if warm start is enabled we need to add the initial guess for the contact position
             // and the force
+            // if warm start is enabled we need to add the initial guess for the contact position
+            // and the force
             if (this->optiSettings.isWarmStartEnabled)
             {
                 concatenateInput(contact.position, "contact_" + key + "_position_warmstart");
+
+                std::size_t cornerIndex = 0;
+                for (const auto& corner : contact.corners)
+                {
+                    concatenateInput(corner.force,
+                                     "contact_" + key + "_corner_" + std::to_string(cornerIndex)
+                                         + "_force_warmstart");
+                    cornerIndex++;
+                }
 
                 std::size_t cornerIndex = 0;
                 for (const auto& corner : contact.corners)
@@ -1017,6 +1150,7 @@ struct CentroidalMPC::Impl
 
         concatenateOutput(this->optiVariables.com, "com");
 
+        casadi::Dict toFunctionOptions, jitOptions;
         casadi::Dict toFunctionOptions, jitOptions;
         if (casadiVersionIsAtLeast360())
         {
@@ -1103,8 +1237,12 @@ bool CentroidalMPC::advance()
     auto it = controllerOutput.begin();
 
     ContactListMap contactListMap = m_pimpl->output.contactPhaseList.lists();
+
+    ContactListMap contactListMap = m_pimpl->output.contactPhaseList.lists();
     for (auto& [key, contact] : m_pimpl->output.contacts)
     {
+        ContactList& contactList = contactListMap.at(key);
+
         ContactList& contactList = contactListMap.at(key);
 
         // this is required for toEigen
@@ -1115,12 +1253,17 @@ bool CentroidalMPC::advance()
         for (int i = 0; i < size; i++)
         {
             // read it as: "if the contact is active at a given time instant"
+            // read it as: "if the contact is active at a given time instant"
             if (toEigen(*it)(i) > 0.5)
             {
+                // if the contact is active now
                 // if the contact is active now
                 if (i == 0)
                 {
                     break;
+                } // in this case we break if the contact is active and at the previous time
+                  // step it was not active
+                else if (toEigen(*it)(i - 1) < 0.5)
                 } // in this case we break if the contact is active and at the previous time
                   // step it was not active
                 else if (toEigen(*it)(i - 1) < 0.5)
@@ -1135,9 +1278,14 @@ bool CentroidalMPC::advance()
         const double isEnabled = toEigen(*it)(0);
 
         /// Position
+        // check if now we are in contact
+        const double isEnabled = toEigen(*it)(0);
+
+        /// Position
         std::advance(it, 1);
         contact.pose.translation(toEigen(*it).leftCols<1>());
 
+        // In this case the contact is not active and there will be a next planned contact
         // In this case the contact is not active and there will be a next planned contact
         if (index < size)
         {
@@ -1146,11 +1294,28 @@ bool CentroidalMPC::advance()
 
             auto nextPlannedContact = contactList.getPresentContact(nextPlannedContactTime);
             if (nextPlannedContact == contactList.end())
+            auto nextPlannedContact = contactList.getPresentContact(nextPlannedContactTime);
+            if (nextPlannedContact == contactList.end())
             {
                 log()->error("[CentroidalMPC::advance] Unable to get the next planned contact");
                 return false;
             }
 
+            PlannedContact modifiedNextPlannedContact = *nextPlannedContact;
+
+            // only the position is modified by the MPC
+            modifiedNextPlannedContact.pose.translation(toEigen(*it).col(index));
+
+            if (!contactList.editContact(nextPlannedContact, modifiedNextPlannedContact))
+            {
+                log()->error("{} Unable to edit the next planned contact at time {}. The contact "
+                             "list contains the following contacts: {}",
+                             errorPrefix,
+                             std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 nextPlannedContactTime),
+                             contactList.toString());
+                return false;
+            }
             PlannedContact modifiedNextPlannedContact = *nextPlannedContact;
 
             // only the position is modified by the MPC
@@ -1178,7 +1343,24 @@ bool CentroidalMPC::advance()
         std::advance(it, 1);
 
         for (std::size_t cornerIndex = 0; cornerIndex < contact.corners.size(); cornerIndex++)
+        // get the orientation
+        contact.pose.quat(Eigen::Quaterniond(
+            Eigen::Map<const Eigen::Matrix3d>(toEigen(*it).leftCols<1>().data())));
+
+        // get the forces
+        std::advance(it, 1);
+
+        for (std::size_t cornerIndex = 0; cornerIndex < contact.corners.size(); cornerIndex++)
         {
+            if (m_pimpl->optiSettings.isWarmStartEnabled)
+            {
+                toEigen(*m_pimpl->initialGuess.contactsInitialGuess[key].contactForce[cornerIndex])
+                    .leftCols(m_pimpl->optiSettings.horizon - 1)
+                    = toEigen(*it).rightCols(m_pimpl->optiSettings.horizon - 1);
+                toEigen(*m_pimpl->initialGuess.contactsInitialGuess[key].contactForce[cornerIndex])
+                    .rightCols<1>()
+                    = toEigen(*it).rightCols<1>();
+            }
             if (m_pimpl->optiSettings.isWarmStartEnabled)
             {
                 toEigen(*m_pimpl->initialGuess.contactsInitialGuess[key].contactForce[cornerIndex])
@@ -1191,14 +1373,20 @@ bool CentroidalMPC::advance()
             if (isEnabled > 0.5)
             {
                 contact.corners[cornerIndex].force = toEigen(*it).leftCols<1>();
+                contact.corners[cornerIndex].force = toEigen(*it).leftCols<1>();
             } else
             {
                 contact.corners[cornerIndex].force.setZero();
+                contact.corners[cornerIndex].force.setZero();
             }
+
 
             std::advance(it, 1);
         }
     }
+
+    // update the contact phase list
+    m_pimpl->output.contactPhaseList.setLists(contactListMap);
 
     // update the contact phase list
     m_pimpl->output.contactPhaseList.setLists(contactListMap);
@@ -1345,6 +1533,20 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
         }
     }
 
+    for (const auto& [key, list] : contactPhaseList.lists())
+    {
+        if (!list.areContactsSampled(m_pimpl->optiSettings.samplingTime))
+        {
+            log()->error("{} The contact list {} is not sampled at the sampling time {}. Please "
+                         "resample the contacts lists before calling this method.",
+                         errorPrefix,
+                         key,
+                         std::chrono::duration_cast<std::chrono::milliseconds>(
+                             m_pimpl->optiSettings.samplingTime));
+            return false;
+        }
+    }
+
     m_pimpl->contactPhaseList = contactPhaseList;
 
     // The orientation is stored as a vectorized version of the rotation matrix
@@ -1391,6 +1593,12 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
                      errorPrefix,
                      std::chrono::duration_cast<std::chrono::milliseconds>(m_pimpl->currentTime),
                      contactPhaseList.toString());
+        log()->error("{} Unable to find the contact phase related to the current at time {}. The "
+                     "contact "
+                     "list contains the following contacts: {}",
+                     errorPrefix,
+                     std::chrono::duration_cast<std::chrono::milliseconds>(m_pimpl->currentTime),
+                     contactPhaseList.toString());
         return false;
     }
 
@@ -1409,6 +1617,8 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
         const std::chrono::nanoseconds tInitial = std::max(m_pimpl->currentTime, it->beginTime);
         const std::chrono::nanoseconds tFinal = std::min(absoluteTimeHorizon, it->endTime);
 
+        const std::chrono::nanoseconds duration = tFinal - tInitial;
+        const int numberOfSamples = duration / m_pimpl->optiSettings.samplingTime;
         const std::chrono::nanoseconds duration = tFinal - tInitial;
         const int numberOfSamples = duration / m_pimpl->optiSettings.samplingTime;
 
@@ -1456,6 +1666,7 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
         if (m_pimpl->optiSettings.isWarmStartEnabled)
         {
             toEigen(*(m_pimpl->initialGuess.contactsInitialGuess[key].contactLocation))
+            toEigen(*(m_pimpl->initialGuess.contactsInitialGuess[key].contactLocation))
                 = toEigen(*contact.nominalPosition);
         }
     }
@@ -1469,6 +1680,9 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
         toEigen(*contact.upperLimitPosition).colwise() = boundingBox.upperLimit;
         toEigen(*contact.lowerLimitPosition).colwise() = boundingBox.lowerLimit;
     }
+
+    // we store the contact phase list for the output
+    m_pimpl->output.contactPhaseList = contactPhaseList;
 
     // we store the contact phase list for the output
     m_pimpl->output.contactPhaseList = contactPhaseList;
