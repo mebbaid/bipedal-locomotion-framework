@@ -89,7 +89,7 @@ TEST_CASE("StableCentroidalMPC")
     handler->setParameter("number_of_maximum_contacts", 2);
     handler->setParameter("number_of_slices", 1);
     handler->setParameter("static_friction_coefficient", 0.33);
-    handler->setParameter("solver_verbosity", 0);
+    handler->setParameter("solver_verbosity", 1);
     handler->setParameter("solver_name", "ipopt");
     handler->setParameter("linear_solver", "mumps");
     handler->setParameter("is_warm_start_enabled", true);
