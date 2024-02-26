@@ -118,14 +118,14 @@ TEST_CASE("StableCentroidalMPC")
     handler->setGroup("CONTACT_1", contact1Handler);
 
     handler->setParameter("com_weight", std::vector<double>{1, 1, 1000});
-    handler->setParameter("contact_position_weight", 1e4);
+    handler->setParameter("contact_position_weight", 2e2);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
     handler->setParameter("angular_momentum_weight", 1e2);
     handler->setParameter("contact_force_symmetry_weight", 10.0);
 
     // stability specific parameters
-    handler->setParameter("angular_momentum_norm_limit", 5.0);
-    handler->setParameter("adaptive_feedback_k1", 1.0);
+    handler->setParameter("angular_momentum_norm_limit", 10.0);
+    handler->setParameter("adaptive_feedback_k1", 20.0);
     handler->setParameter("adaptive_feedback_k2", 50.0);
 
     StableCentroidalMPC mpc;
@@ -307,7 +307,7 @@ TEST_CASE("StableCentroidalMPC")
     std::chrono::nanoseconds currentTime = 0s;
     auto phaseIt = phaseList.getPresentPhase(currentTime);
 
-    constexpr int simulationHorizon = 60;
+    constexpr int simulationHorizon = 100;
     std::vector<Eigen::Vector3d> comTrajectoryRecedingHorizon;
     for (int i = 0; i < simulationHorizon; i++)
     {

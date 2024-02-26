@@ -43,8 +43,9 @@ struct StableCentroidalMPC::Impl
 
     struct StableConstants
     {
-        const double alpha = 0.3;
-        const double k1 = 3.0;
+        double alpha{0.1};
+        double k1{1.0};
+        double k2{1.0};
     };
     StableConstants stableConstants;
 
@@ -375,7 +376,10 @@ struct StableCentroidalMPC::Impl
                              "contact_force_symmetry_weight",
                              this->weights.contactForceSymmetry);
 
-        // initialize the friction cone
+        ok = ok && getParameter(ptr, "angular_momentum_norm_limit", this->stableConstants.alpha);
+        ok = ok && getParameter(ptr, "adaptive_feedback_k1", this->stableConstants.k1);
+        ok = ok && getParameter(ptr, "adaptive_feedback_k2", this->stableConstants.k2);
+
         ok = ok && frictionCone.initialize(ptr);
         ok = ok && getParameter(ptr, "solver_name", this->optiSettings.solverName);
         if (!ok)
@@ -865,7 +869,7 @@ struct StableCentroidalMPC::Impl
 
         casadi::DM gravity = casadi::DM::zeros(3);
         gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
-        auto u_adaptive = -2 * this->stableConstants.k1 * z2 + (this->stableConstants.k1 * this->stableConstants.k1) * z1 - gravity - this->optiVariables.thetaHatCurrent ; // assuming accelaration ref zero
+        auto u_adaptive = -(this->stableConstants.k1 + this->stableConstants.k2) * z2 + (this->stableConstants.k1 * this->stableConstants.k1) * z1 - gravity - this->optiVariables.thetaHatCurrent ; // assuming accelaration ref zero
         casadi::MX averageForce;
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
@@ -888,6 +892,7 @@ struct StableCentroidalMPC::Impl
                         + casadi::MX::mtimes(z1(Sl(), 0).T(), z2(Sl(), 0))
                         + casadi::MX::mtimes(z2(Sl(), 0).T(), averageForce - u_adaptive)
                     <= 0.0);
+
 
         this->opti.subject_to(casadi::MX::mtimes(angularMomentum(Sl(),1).T() , angularMomentum(Sl(),1))  <= this->stableConstants.alpha );
 

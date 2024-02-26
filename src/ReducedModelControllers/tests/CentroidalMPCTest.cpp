@@ -84,20 +84,20 @@ void writeResultsToFile(const CentroidalMPC& mpc,
 TEST_CASE("CentroidalMPC")
 {
 
-    constexpr bool saveDataset = false;
+    constexpr bool saveDataset = true;
 
     using namespace std::chrono_literals;
     constexpr std::chrono::nanoseconds dT = 100ms;
 
     std::shared_ptr<IParametersHandler> handler = std::make_shared<StdImplementation>();
     handler->setParameter("sampling_time", dT);
-    handler->setParameter("time_horizon", 1s + 250ms);
+    handler->setParameter("time_horizon", 500ms);
     handler->setParameter("number_of_maximum_contacts", 2);
     handler->setParameter("number_of_slices", 1);
     handler->setParameter("static_friction_coefficient", 0.33);
-    handler->setParameter("solver_verbosity", 0);
+    handler->setParameter("solver_verbosity", 1);
     handler->setParameter("solver_name", "ipopt");
-    handler->setParameter("linear_solver", "mumps");
+    handler->setParameter("linear_solver", "ma97");
     handler->setParameter("is_warm_start_enabled", true);
 
     auto contact0Handler = std::make_shared<StdImplementation>();
@@ -124,9 +124,9 @@ TEST_CASE("CentroidalMPC")
     handler->setGroup("CONTACT_1", contact1Handler);
 
     handler->setParameter("com_weight", std::vector<double>{1, 1, 1000});
-    handler->setParameter("contact_position_weight", 1e3);
+    handler->setParameter("contact_position_weight", 2e2);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
-    handler->setParameter("angular_momentum_weight", 1e5);
+    handler->setParameter("angular_momentum_weight", 1e2);
     handler->setParameter("contact_force_symmetry_weight", 10.0);
 
     CentroidalMPC mpc;
@@ -272,10 +272,10 @@ TEST_CASE("CentroidalMPC")
     comSpline.setKnots(comKnots, timeKnots);
 
     Eigen::Vector3d velocity, acceleration;
-    std::vector<Eigen::Vector3d> comTraj(700, Eigen::Vector3d::Zero());
-    std::vector<Eigen::Vector3d> angularMomentumTraj(700, Eigen::Vector3d::Zero());
+    std::vector<Eigen::Vector3d> comTraj(1400, Eigen::Vector3d::Zero());
+    std::vector<Eigen::Vector3d> angularMomentumTraj(1400, Eigen::Vector3d::Zero());
 
-    int tempInt = 500;
+    int tempInt = 1000;
     for (int i = 0; i < tempInt; i++)
     {
         comSpline.evaluatePoint(i * dT, comTraj[i], velocity, acceleration);
