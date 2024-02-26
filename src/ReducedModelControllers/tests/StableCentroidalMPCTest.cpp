@@ -81,17 +81,17 @@ TEST_CASE("StableCentroidalMPC")
     constexpr bool saveDataset = true;
 
     using namespace std::chrono_literals;
-    constexpr std::chrono::nanoseconds dT = 200ms;
+    constexpr std::chrono::nanoseconds dT = 100ms;
 
     std::shared_ptr<IParametersHandler> handler = std::make_shared<StdImplementation>();
     handler->setParameter("sampling_time", dT);
-    handler->setParameter("time_horizon", 1s + 200ms);
+    handler->setParameter("time_horizon", 500ms);
     handler->setParameter("number_of_maximum_contacts", 2);
     handler->setParameter("number_of_slices", 1);
     handler->setParameter("static_friction_coefficient", 0.33);
     handler->setParameter("solver_verbosity", 1);
     handler->setParameter("solver_name", "ipopt");
-    handler->setParameter("linear_solver", "mumps");
+    handler->setParameter("linear_solver", "ma97");
     handler->setParameter("is_warm_start_enabled", true);
 
     auto contact0Handler = std::make_shared<StdImplementation>();
@@ -118,10 +118,15 @@ TEST_CASE("StableCentroidalMPC")
     handler->setGroup("CONTACT_1", contact1Handler);
 
     handler->setParameter("com_weight", std::vector<double>{1, 1, 1000});
-    handler->setParameter("contact_position_weight", 2e2);
+    handler->setParameter("contact_position_weight", 1e4);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
     handler->setParameter("angular_momentum_weight", 1e2);
     handler->setParameter("contact_force_symmetry_weight", 10.0);
+
+    // stability specific parameters
+    handler->setParameter("angular_momentum_norm_limit", 5.0);
+    handler->setParameter("adaptive_feedback_k1", 1.0);
+    handler->setParameter("adaptive_feedback_k2", 50.0);
 
     StableCentroidalMPC mpc;
 
@@ -302,7 +307,7 @@ TEST_CASE("StableCentroidalMPC")
     std::chrono::nanoseconds currentTime = 0s;
     auto phaseIt = phaseList.getPresentPhase(currentTime);
 
-    constexpr int simulationHorizon = 10;
+    constexpr int simulationHorizon = 60;
     std::vector<Eigen::Vector3d> comTrajectoryRecedingHorizon;
     for (int i = 0; i < simulationHorizon; i++)
     {
@@ -377,7 +382,7 @@ TEST_CASE("StableCentroidalMPC")
     const auto& [com, dcom, angularMomentum] = system->getState();
 
     // We check that the robot walked forward keeping the CoM height almost constant
-    REQUIRE(com(0) > 0.05);
+    REQUIRE(com(0) > 0.25);
     REQUIRE(std::abs(com(1) - com0(1)) < 0.1);
     REQUIRE(std::abs(com(2) - com0(2)) < 0.005);
 }
