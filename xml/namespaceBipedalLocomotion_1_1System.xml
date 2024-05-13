@@ -21,6 +21,8 @@
     <innerclass refid="classBipedalLocomotion_1_1System_1_1Source" prot="public">BipedalLocomotion::System::Source</innerclass>
     <innerclass refid="classBipedalLocomotion_1_1System_1_1StdClock" prot="public">BipedalLocomotion::System::StdClock</innerclass>
     <innerclass refid="classBipedalLocomotion_1_1System_1_1StdClockFactory" prot="public">BipedalLocomotion::System::StdClockFactory</innerclass>
+    <innerclass refid="classBipedalLocomotion_1_1System_1_1Timer" prot="public">BipedalLocomotion::System::Timer</innerclass>
+    <innerclass refid="classBipedalLocomotion_1_1System_1_1TimeProfiler" prot="public">BipedalLocomotion::System::TimeProfiler</innerclass>
     <innerclass refid="classBipedalLocomotion_1_1System_1_1VariablesHandler" prot="public">BipedalLocomotion::System::VariablesHandler</innerclass>
     <innerclass refid="structBipedalLocomotion_1_1System_1_1WeightProvider" prot="public">BipedalLocomotion::System::WeightProvider</innerclass>
     <innerclass refid="classBipedalLocomotion_1_1System_1_1WeightProviderFactory" prot="public">BipedalLocomotion::System::WeightProviderFactory</innerclass>

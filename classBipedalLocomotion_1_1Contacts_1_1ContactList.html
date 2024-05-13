@@ -35,9 +35,10 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
+                <li><a href="./v0.17.0/index.html">v0.17.0</a></li>
+                <li><a href="./v0.16.1/index.html">v0.16.1</a></li>
+                <li><a href="./v0.18.0/index.html">v0.18.0</a></li>
                 <li><a href="./v0.15.0/index.html">v0.15.0</a></li>
-                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
-                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
               </ol>
             </li>
             <li>
@@ -186,6 +187,14 @@
             </dt>
             <dd>Edit an existing contact.</dd>
             <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a92a52526b36a5eb032dd5d4e893a32fc" class="m-doc">getActiveContact</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; time) const -&gt; const_iterator</span>
+            </dt>
+            <dd>Get the active contact given the time.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a3515fa9e57884ab8e1a122495ae3ed66" class="m-doc">getNextContact</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; time) const -&gt; const_iterator</span>
+            </dt>
+            <dd>Get the next contact given the time.</dd>
+            <dt>
               <span class="m-doc-wrap-bumper">auto <a href="#ad1a6136e4c7f01886a379dc359c6b5f1" class="m-doc">getPresentContact</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; time) const -&gt; const_iterator</span>
             </dt>
             <dd>Get the contact given the time.</dd>
@@ -201,6 +210,18 @@
               <span class="m-doc-wrap-bumper">void <a href="#a16ec57481a746a75d30e0c52f9a136c2" class="m-doc-self">removeLastContact</a>(</span><span class="m-doc-wrap">)</span>
             </dt>
             <dd>Remove only the last contact.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a13a4c42fbe20c34faf9f6a26c8ab36f8" class="m-doc">toString</a>(</span><span class="m-doc-wrap">) const -&gt; std::string</span>
+            </dt>
+            <dd>Convert the contact list to a string.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#a1691307ffb0ae3c94207aee13a60fa01" class="m-doc">forceSampleTime</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; dt) -&gt; bool</span>
+            </dt>
+            <dd>Force the sample time of the contact list.</dd>
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a href="#aa24bdf169370a93b39ab8a1e939c4e68" class="m-doc">areContactsSampled</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; dt) const -&gt; bool</span>
+            </dt>
+            <dd>Check if the contacts are sampled with the given sample time.</dd>
           </dl>
         </section>
         <section>
@@ -455,6 +476,54 @@
               </tfoot>
             </table>
           </div></section>
+          <section class="m-doc-details" id="a92a52526b36a5eb032dd5d4e893a32fc"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">const_iterator BipedalLocomotion::<wbr />Contacts::<wbr />ContactList::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a92a52526b36a5eb032dd5d4e893a32fc" class="m-doc-self">getActiveContact</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; time) const</span></span>
+            </h3>
+            <p>Get the active contact given the time.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">time</td>
+                  <td>The present time.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>an iterator to the last contact having an activation time lower than time. If no contact satisfies this condition, it returns a pointer to the end.</td>
+                </tr>
+              </tfoot>
+            </table>
+<p>It returns the active contact (i.e., the highest activation time lower than time and the deactivation time strictly higher than time). If no contacts are active at the given time, it returns an iterator to the end.</p><aside class="m-note m-info"><h4>Note</h4><p>Differently from getPresentContact the contact needs to be active.</p></aside>
+          </div></section>
+          <section class="m-doc-details" id="a3515fa9e57884ab8e1a122495ae3ed66"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">const_iterator BipedalLocomotion::<wbr />Contacts::<wbr />ContactList::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a3515fa9e57884ab8e1a122495ae3ed66" class="m-doc-self">getNextContact</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; time) const</span></span>
+            </h3>
+            <p>Get the next contact given the time.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">time</td>
+                  <td>The present time.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>an iterator to the first contact having an activation time higher than time. If no contact satisfies this condition, it returns a pointer to the end.</td>
+                </tr>
+              </tfoot>
+            </table>
+<p>It returns the contact with the lowest activation time higher than time. If no contacts have an activation time higher than time, it returns an iterator to the end.</p>
+          </div></section>
           <section class="m-doc-details" id="ad1a6136e4c7f01886a379dc359c6b5f1"><div>
             <h3>
               <span class="m-doc-wrap-bumper">const_iterator BipedalLocomotion::<wbr />Contacts::<wbr />ContactList::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#ad1a6136e4c7f01886a379dc359c6b5f1" class="m-doc-self">getPresentContact</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; time) const</span></span>
@@ -473,7 +542,7 @@
               <tfoot>
                 <tr>
                   <th>Returns</th>
-                  <td>an iterator to the last contact having an activation time lower than time. If no contact satisfy this condition, it returns a pointer to the end.</td>
+                  <td>an iterator to the last contact having an activation time lower than time. If no contact satisfies this condition, it returns a pointer to the end.</td>
                 </tr>
               </tfoot>
             </table>
@@ -501,6 +570,68 @@
                 </tr>
               </tfoot>
             </table>
+          </div></section>
+          <section class="m-doc-details" id="a13a4c42fbe20c34faf9f6a26c8ab36f8"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">std::string BipedalLocomotion::<wbr />Contacts::<wbr />ContactList::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a13a4c42fbe20c34faf9f6a26c8ab36f8" class="m-doc-self">toString</a>(</span><span class="m-doc-wrap">) const</span></span>
+            </h3>
+            <p>Convert the contact list to a string.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <tfoot>
+                <tr>
+                  <th style="width: 1%">Returns</th>
+                  <td>A string containing the information of the contact list.</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div></section>
+          <section class="m-doc-details" id="a1691307ffb0ae3c94207aee13a60fa01"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">bool BipedalLocomotion::<wbr />Contacts::<wbr />ContactList::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a1691307ffb0ae3c94207aee13a60fa01" class="m-doc-self">forceSampleTime</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; dt)</span></span>
+            </h3>
+            <p>Force the sample time of the contact list.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">dt</td>
+                  <td>The new sample time.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>true if the contact list has been correctly resampled.</td>
+                </tr>
+              </tfoot>
+            </table>
+<aside class="m-note m-info"><h4>Note</h4><p>the activation time is rounded down to the nearest multiple of dt, while the deactivation time is rounded up to the nearest multiple of dt.</p><p>If the deactivation time of a contact in the list is equal to <code>std::chrono::nanoseconds::max()</code> it will not be rounded up.</p></aside><aside class="m-note m-danger"><h4>Warning</h4><p>This will change the sample time of all the contacts in the list. All the iterators to the contacts will be invalidated.</p></aside>
+          </div></section>
+          <section class="m-doc-details" id="aa24bdf169370a93b39ab8a1e939c4e68"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper">bool BipedalLocomotion::<wbr />Contacts::<wbr />ContactList::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#aa24bdf169370a93b39ab8a1e939c4e68" class="m-doc-self">areContactsSampled</a>(</span><span class="m-doc-wrap">const std::chrono::nanoseconds&amp; dt) const</span></span>
+            </h3>
+            <p>Check if the contacts are sampled with the given sample time.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">dt</td>
+                  <td>The sample time.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>true if the contacts are sampled with the given sample time.</td>
+                </tr>
+              </tfoot>
+            </table>
+<aside class="m-note m-info"><h4>Note</h4><p>If the deactivation time of a contact in the list is equal to <code>std::chrono::nanoseconds::max()</code> it will consider it as sampled with the given sample time.</p></aside>
           </div></section>
         </section>
       </div>

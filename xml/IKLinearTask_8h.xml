@@ -12,7 +12,7 @@
     <includedby refid="IntegrationBasedIK_8h" local="no">BipedalLocomotion/IK/IntegrationBasedIK.h</includedby>
     <includedby refid="JointLimitsTask_8h" local="no">BipedalLocomotion/IK/JointLimitsTask.h</includedby>
     <includedby refid="IK_2include_2BipedalLocomotion_2IK_2JointTrackingTask_8h" local="no">BipedalLocomotion/IK/JointTrackingTask.h</includedby>
-    <includedby refid="R3Task_8h" local="no">BipedalLocomotion/IK/R3Task.h</includedby>
+    <includedby refid="IK_2include_2BipedalLocomotion_2IK_2R3Task_8h" local="no">BipedalLocomotion/IK/R3Task.h</includedby>
     <includedby refid="IK_2include_2BipedalLocomotion_2IK_2SE3Task_8h" local="no">BipedalLocomotion/IK/SE3Task.h</includedby>
     <includedby refid="IK_2include_2BipedalLocomotion_2IK_2SO3Task_8h" local="no">BipedalLocomotion/IK/SO3Task.h</includedby>
     <incdepgraph>
@@ -103,6 +103,9 @@
       <node id="15">
         <label>utility</label>
       </node>
+      <node id="6">
+        <label>iDynTree/MatrixView.h</label>
+      </node>
       <node id="11">
         <label>cstddef</label>
       </node>
@@ -114,9 +117,6 @@
       </node>
       <node id="14">
         <label>type_traits</label>
-      </node>
-      <node id="6">
-        <label>iDynTree/Core/MatrixView.h</label>
       </node>
       <node id="1">
         <label>BipedalLocomotion/IK/IKLinearTask.h</label>
@@ -157,7 +157,7 @@
       </node>
       <node id="10">
         <label>BipedalLocomotion/IK/R3Task.h</label>
-        <link refid="R3Task_8h"/>
+        <link refid="IK_2include_2BipedalLocomotion_2IK_2R3Task_8h"/>
       </node>
       <node id="4">
         <label>BipedalLocomotion/IK/DistanceTask.h</label>

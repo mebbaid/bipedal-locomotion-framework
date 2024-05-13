@@ -115,6 +115,9 @@
       <node id="17">
         <label>utility</label>
       </node>
+      <node id="8">
+        <label>iDynTree/MatrixView.h</label>
+      </node>
       <node id="13">
         <label>cstddef</label>
       </node>
@@ -126,9 +129,6 @@
       </node>
       <node id="16">
         <label>type_traits</label>
-      </node>
-      <node id="8">
-        <label>iDynTree/Core/MatrixView.h</label>
       </node>
       <node id="4">
         <label>BipedalLocomotion/IK/IKLinearTask.h</label>
@@ -162,7 +162,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="BipedalLocomotion/IK/CoMTask.h" line="142" column="1" declfile="BipedalLocomotion/IK/CoMTask.h" declline="142" declcolumn="1"/>
+        <location file="BipedalLocomotion/IK/CoMTask.h" line="155" column="1" declfile="BipedalLocomotion/IK/CoMTask.h" declline="155" declcolumn="1"/>
       </memberdef>
       </sectiondef>
     <briefdescription>

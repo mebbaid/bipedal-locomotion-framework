@@ -35,9 +35,10 @@
               <a href="pages.html">Versions</a>
               <ol>
                 <li><a href="./index.html">Master</a></li>
+                <li><a href="./v0.17.0/index.html">v0.17.0</a></li>
+                <li><a href="./v0.16.1/index.html">v0.16.1</a></li>
+                <li><a href="./v0.18.0/index.html">v0.18.0</a></li>
                 <li><a href="./v0.15.0/index.html">v0.15.0</a></li>
-                <li><a href="./v0.14.1/index.html">v0.14.1</a></li>
-                <li><a href="./v0.13.0/index.html">v0.13.0</a></li>
               </ol>
             </li>
             <li>
@@ -93,6 +94,10 @@
             </dt>
             <dd>The <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1ConstantMeasurementModel.html" class="m-doc">ConstantMeasurementModel</a> class is a concrete implementation of the <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1Dynamics.html" class="m-doc">Dynamics</a>.</dd>
             <dt>
+              class <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1ExternalContactStateDynamics.html" class="m-doc">ExternalContactStateDynamics</a>
+            </dt>
+            <dd>The <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1ExternalContactStateDynamics.html" class="m-doc">ExternalContactStateDynamics</a> class is a concrete implementation of the <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1Dynamics.html" class="m-doc">Dynamics</a>.</dd>
+            <dt>
               class <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1FrictionTorqueStateDynamics.html" class="m-doc">FrictionTorqueStateDynamics</a>
             </dt>
             <dd>The FrictionTorqueDynamics class is a concrete implementation of the <a href="classBipedalLocomotion_1_1Estimators_1_1RobotDynamicsEstimator_1_1Dynamics.html" class="m-doc">Dynamics</a>.</dd>
@@ -127,7 +132,8 @@
           <h2><a href="#pub-methods">Public functions</a></h2>
           <dl class="m-doc">
             <dt>
-              <span class="m-doc-wrap-bumper">auto <a href="#a8c24850ae58c6cdd1d4534e65ca24c7d" class="m-doc">initialize</a>(</span><span class="m-doc-wrap">std::weak_ptr&lt;const <a href="classBipedalLocomotion_1_1ParametersHandler_1_1IParametersHandler.html" class="m-doc">ParametersHandler::<wbr />IParametersHandler</a>&gt; paramHandler) -&gt; bool <span class="m-label m-flat m-warning">virtual</span></span>
+              <span class="m-doc-wrap-bumper">auto <a href="#a60ccb70d762e4d9d02ded424a393c64f" class="m-doc">initialize</a>(</span><span class="m-doc-wrap">std::weak_ptr&lt;const <a href="classBipedalLocomotion_1_1ParametersHandler_1_1IParametersHandler.html" class="m-doc">ParametersHandler::<wbr />IParametersHandler</a>&gt; paramHandler,
+              const std::string&amp; name) -&gt; bool <span class="m-label m-flat m-warning">virtual</span></span>
             </dt>
             <dd>Initialize the task.</dd>
             <dt>
@@ -209,9 +215,10 @@
         </section>
         <section>
           <h2>Function documentation</h2>
-          <section class="m-doc-details" id="a8c24850ae58c6cdd1d4534e65ca24c7d"><div>
+          <section class="m-doc-details" id="a60ccb70d762e4d9d02ded424a393c64f"><div>
             <h3>
-              <span class="m-doc-wrap-bumper">bool BipedalLocomotion::<wbr />Estimators::<wbr />RobotDynamicsEstimator::<wbr />Dynamics::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a8c24850ae58c6cdd1d4534e65ca24c7d" class="m-doc-self">initialize</a>(</span><span class="m-doc-wrap">std::weak_ptr&lt;const <a href="classBipedalLocomotion_1_1ParametersHandler_1_1IParametersHandler.html" class="m-doc">ParametersHandler::<wbr />IParametersHandler</a>&gt; paramHandler) <span class="m-label m-warning">virtual</span></span></span>
+              <span class="m-doc-wrap-bumper">bool BipedalLocomotion::<wbr />Estimators::<wbr />RobotDynamicsEstimator::<wbr />Dynamics::<wbr /></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a href="#a60ccb70d762e4d9d02ded424a393c64f" class="m-doc-self">initialize</a>(</span><span class="m-doc-wrap">std::weak_ptr&lt;const <a href="classBipedalLocomotion_1_1ParametersHandler_1_1IParametersHandler.html" class="m-doc">ParametersHandler::<wbr />IParametersHandler</a>&gt; paramHandler,
+              const std::string&amp; name) <span class="m-label m-warning">virtual</span></span></span>
             </h3>
             <p>Initialize the task.</p>
             <table class="m-table m-fullwidth m-flat">
@@ -222,6 +229,10 @@
                 <tr>
                   <td style="width: 1%">paramHandler</td>
                   <td>pointer to the parameters handler.</td>
+                </tr>
+                <tr>
+                  <td>name</td>
+                  <td>name of the dynamics.</td>
                 </tr>
               </tbody>
               <tfoot>
