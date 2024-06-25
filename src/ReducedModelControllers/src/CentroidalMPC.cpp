@@ -100,6 +100,7 @@ struct CentroidalMPC::Impl
         casadi::DM position;
         casadi::MX force;
 
+        casadi::MX isEnabled;
         std::string cornerName;
 
         CasadiCorner(const std::string& cornerName)
@@ -123,6 +124,7 @@ struct CentroidalMPC::Impl
             this->position(2, 0) = other.position(2);
 
             this->force = casadi::MX::sym(cornerName + "_force", other.force.size(), 1);
+            this->isEnabled = casadi::MX::sym(cornerName + "_is_enabled");
 
             return *this;
         }
@@ -134,6 +136,7 @@ struct CentroidalMPC::Impl
         casadi::MX linearVelocity;
         casadi::MX orientation;
         casadi::MX isEnabled;
+        casadi::MX isNotMovable;
         casadi::MX amountOfNormalForceRespectToRobotWeight;
         std::vector<CasadiCorner> corners;
 
@@ -158,6 +161,7 @@ struct CentroidalMPC::Impl
             this->position = casadi::MX::sym(contactName + "_position", 3);
             this->linearVelocity = casadi::MX::sym(contactName + "_linear_velocity", 3);
             this->isEnabled = casadi::MX::sym(contactName + "_is_enable");
+            this->isNotMovable = casadi::MX::sym(contactName + "_is_not_movable");
             this->amountOfNormalForceRespectToRobotWeight
                 = casadi::MX::sym(contactName + "_amount_of_normal_force_respect_to_robot_weight");
 
@@ -196,6 +200,8 @@ struct CentroidalMPC::Impl
         int ipoptMaxIteration{3000}; /**< Maximum number of iteration */
 
         int horizon; /**<Number of samples used in the horizon */
+        int adjustmentPreventionKnots{0}; /**< Number of knots used to prevent the adjustment of the
+                                             contact position before the contact enabling*/
         std::chrono::nanoseconds samplingTime; /**< Sampling time of the planner */
         std::chrono::nanoseconds timeHorizon; /**< Duration of the horizon */
         bool isWarmStartEnabled{false}; /**< True if the user wants to warm start the CoM, angular
@@ -238,7 +244,11 @@ struct CentroidalMPC::Impl
         casadi::DM* upperLimitPosition;
         casadi::DM* lowerLimitPosition;
         casadi::DM* isEnabled;
+        casadi::DM* isNotMovable;
         casadi::DM* amountOfNormalForceRespectToRobotWeight;
+        std::vector<casadi::DM*> isCornerEnabled;
+        double previousAmountOfNormalForceRespectToRobotWeight{0.5};
+        int lastTrajectoryNumberOfIndexForSmoothing{5};
     };
     struct ControllerInputs
     {
@@ -289,6 +299,18 @@ struct CentroidalMPC::Impl
     };
 
     std::unordered_map<std::string, ContactBoundingBox> contactBoundingBoxes;
+
+    struct CoMLimits
+    {
+        int cbfHorizon{0};
+        double cbfGain{0.0};
+        double cbfMultiplier{0.0};
+        double zMin{0.0};
+        double zMax{0.0};
+        bool enableZLimit{false};
+    };
+
+    CoMLimits comLimits;
 
     bool loadContactCorners(std::shared_ptr<const ParametersHandler::IParametersHandler> ptr,
                             DiscreteGeometryContact& contact)
@@ -425,10 +447,68 @@ struct CentroidalMPC::Impl
         // initialize the friction cone
         ok = ok && frictionCone.initialize(ptr);
         ok = ok && getParameter(ptr, "solver_name", this->optiSettings.solverName);
+        ok = ok && getParameter(ptr, "enable_z_limit", this->comLimits.enableZLimit);
+
         if (!ok)
         {
             return false;
         }
+
+        if (this->comLimits.enableZLimit)
+        {
+            if (!getParameter(ptr, "com_z_min", this->comLimits.zMin))
+            {
+                return false;
+            }
+            if (!getParameter(ptr, "com_z_max", this->comLimits.zMax))
+            {
+                return false;
+            }
+
+            if (this->comLimits.zMin > this->comLimits.zMax)
+            {
+                log()->error("{} The minimum value of the CoM z limit is greater than the maximum "
+                             "value. The minimum value is {} and the maximum value is {}.",
+                             logPrefix,
+                             this->comLimits.zMin,
+                             this->comLimits.zMax);
+                return false;
+            }
+
+            if (!getParameter(ptr, "cbf_horizon", this->comLimits.cbfHorizon))
+            {
+                return false;
+            }
+
+            if (!getParameter(ptr, "cbf_gain", this->comLimits.cbfGain))
+            {
+                return false;
+            }
+
+            if (!getParameter(ptr, "cbf_multiplier", this->comLimits.cbfMultiplier))
+            {
+                return false;
+            }
+
+            // cbf gain and multiplier must be positive and lower than 1
+            if (this->comLimits.cbfGain < 0 || this->comLimits.cbfGain > 1)
+            {
+                log()->error("{} The gain of the CoM z limit is negative or greater than 1. The "
+                             "gain is {}.",
+                             logPrefix,
+                             this->comLimits.cbfGain);
+                return false;
+            }
+
+            if (this->comLimits.cbfHorizon < 0)
+            {
+                log()->error("{} The horizon of the CoM z limit is negative. The horizon is {}.",
+                             logPrefix,
+                             this->comLimits.cbfHorizon);
+                return false;
+            }
+        }
+
         if (this->optiSettings.solverName != "ipopt" && this->optiSettings.solverName != "sqp")
         {
             log()->error("{} The solver name '{}' is not supported. The supported solvers are "
@@ -437,6 +517,12 @@ struct CentroidalMPC::Impl
                          this->optiSettings.solverName);
             return false;
         }
+
+        std::chrono::nanoseconds adjustmentPreventionTimeDelta{0};
+        getOptionalParameter(ptr, "adjustment_prevention_time", adjustmentPreventionTimeDelta);
+
+        this->optiSettings.adjustmentPreventionKnots
+            = adjustmentPreventionTimeDelta / this->optiSettings.samplingTime;
 
         if (this->optiSettings.solverName == "ipopt")
         {
@@ -459,6 +545,31 @@ struct CentroidalMPC::Impl
         return ok;
     }
 
+    /**
+     * Centroidal dynamics and contact position function.
+     * @note the function has the following inputs:
+     *     1. externalForce
+     *     2. externalTorque
+     *     3. com
+     *     4. dcom
+     *     5. angularMomentum
+     *     6. for each contact:
+     *        1. position
+     *        2. orientation
+     *        3. isEnabled
+     *        4. isNotMovable
+     *        5. linearVelocity
+     *        6. for each corner:
+     *           1. force
+     *           2. isEnabled
+     * @note the function has the following outputs:
+     *     1. com
+     *     2. dcom
+     *     3. angularMomentum
+     *     4. for each contact:
+     *        1. position
+     * @return the casadi function
+     */
     casadi::Function ode()
     {
         // Convert DiscreteGeometryContact into a casadiContact object
@@ -502,20 +613,22 @@ struct CentroidalMPC::Impl
             input.push_back(contact.position);
             input.push_back(contact.orientation);
             input.push_back(contact.isEnabled);
+            input.push_back(contact.isNotMovable);
             input.push_back(contact.linearVelocity);
 
             for (const auto& corner : contact.corners)
             {
                 using namespace casadi;
-                ddcom += contact.isEnabled / mass * corner.force;
+                ddcom += corner.isEnabled / mass * corner.force;
                 angularMomentumDerivative
-                    += contact.isEnabled
+                    += corner.isEnabled
                        * MX::cross(MX::mtimes(MX::reshape(contact.orientation, 3, 3),
                                               corner.position)
                                        + contact.position - com,
                                    corner.force);
 
                 input.push_back(corner.force);
+                input.push_back(corner.isEnabled);
             }
         }
 
@@ -528,7 +641,8 @@ struct CentroidalMPC::Impl
 
         for (const auto& [key, contact] : casadiContacts)
         {
-            rhs.push_back(contact.position + (1 - contact.isEnabled) * contact.linearVelocity * dT);
+            rhs.push_back(contact.position
+                          + (1 - contact.isNotMovable) * contact.linearVelocity * dT);
             outputName.push_back(key);
         }
 
@@ -558,7 +672,13 @@ struct CentroidalMPC::Impl
                                 {"error"});
     }
 
-    void resizeControllerInputs()
+    /**
+     * Resize the controller inputs.
+     * @note this function vectorized the controller input variables. The order of the variables
+     * must match the one required by the createController function. There is no check that ensure
+     * this so is up to the programmer to ensure that the order is correct.
+     */
+    bool resizeControllerInputs()
     {
         constexpr int vector3Size = 3;
         const int stateHorizon = this->optiSettings.horizon + 1;
@@ -572,16 +692,30 @@ struct CentroidalMPC::Impl
         // - centroidalVariables = 7: external force + external torque + com current + dcom current
         //                            + current angular momentum + com reference
         //                            + angular momentum reference
-        // - contactVariables = 7: for each contact we have current position + nominal position
-        //                          + orientation + is enabled
+        // - contactVariables = 8: for each contact we have current position + nominal position
+        //                          + orientation + is enabled + is movable
         //                          + amount of normal force respect to robot weight
         //                          + upper limit in position
         //                          + lower limit in position
+        // - cornerVariables = 1: is enabled
         constexpr std::size_t centroidalVariables = 7;
-        constexpr std::size_t contactVariables = 7;
+        constexpr std::size_t contactVariables = 8;
 
-        std::size_t vectorizedOptiInputsSize = centroidalVariables + //
-                                               (this->output.contacts.size() * contactVariables);
+        // compute the corner variables
+        std::size_t cornerVariables = 0;
+        for (const auto& [key, contact] : this->output.contacts)
+        {
+            for (const auto& corner : contact.corners)
+            {
+                // for each corner we need to propagate if the corner is enabled. An enable corner
+                // means that the corner of the contact is in contact with the environment
+                cornerVariables += 1;
+            }
+        }
+
+        std::size_t vectorizedOptiInputsSize = centroidalVariables //
+                                               + (this->output.contacts.size() * contactVariables)
+                                               + cornerVariables;
 
         if (this->optiSettings.isWarmStartEnabled)
         {
@@ -662,6 +796,11 @@ struct CentroidalMPC::Impl
             this->vectorizedOptiInputs.push_back(casadi::DM::zeros(1, this->optiSettings.horizon));
             this->controllerInputs.contacts[key].isEnabled = &this->vectorizedOptiInputs.back();
 
+            // Possibility to not move a contact (in general this should be equal to isEnabled
+            // however we want to avoid to move a contact when the foot is next to the ground)
+            this->vectorizedOptiInputs.push_back(casadi::DM::zeros(1, this->optiSettings.horizon));
+            this->controllerInputs.contacts[key].isNotMovable = &this->vectorizedOptiInputs.back();
+
             // The amount of normal force respect to the robot weight
             this->vectorizedOptiInputs.push_back(casadi::DM::zeros(1, this->optiSettings.horizon));
             this->controllerInputs.contacts[key].amountOfNormalForceRespectToRobotWeight
@@ -679,6 +818,16 @@ struct CentroidalMPC::Impl
             this->controllerInputs.contacts[key].lowerLimitPosition
                 = &this->vectorizedOptiInputs.back();
 
+            // variable useful to enable or disable the corner (i.e., the corner of the contact
+            // is in contact with the environment)
+            for (const auto& corner : contact.corners)
+            {
+                this->vectorizedOptiInputs.push_back(
+                    casadi::DM::zeros(1, this->optiSettings.horizon));
+                this->controllerInputs.contacts[key].isCornerEnabled.push_back(
+                    &this->vectorizedOptiInputs.back());
+            }
+
             if (this->optiSettings.isWarmStartEnabled)
             {
                 this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, stateHorizon));
@@ -695,7 +844,17 @@ struct CentroidalMPC::Impl
             }
         }
 
-        assert(vectorizedOptiInputsSize == this->vectorizedOptiInputs.size());
+        if (vectorizedOptiInputsSize != this->vectorizedOptiInputs.size())
+        {
+            log()->error("[CentroidalMPC::Impl::resizeControllerInputs] The size of the vectorized "
+                         "opti inputs is not correct. The expected size is {} and the actual size "
+                         "is {}. This is a bug. Please report it.",
+                         vectorizedOptiInputsSize,
+                         this->vectorizedOptiInputs.size());
+            return false;
+        }
+
+        return true;
     }
 
     void populateOptiVariables()
@@ -739,6 +898,10 @@ struct CentroidalMPC::Impl
             // Maximum admissible contact force. It is expressed in the contact body frame
             c.isEnabled = this->opti.parameter(1, this->optiSettings.horizon);
 
+            // Possibility to not move a contact (in general this should be equal to isEnabled
+            // however we want to avoid to move a contact when the foot is next to the ground)
+            c.isNotMovable = this->opti.parameter(1, this->optiSettings.horizon);
+
             // The amount of normal force respect to the robot weight
             c.amountOfNormalForceRespectToRobotWeight
                 = this->opti.parameter(1, this->optiSettings.horizon);
@@ -751,11 +914,11 @@ struct CentroidalMPC::Impl
             for (int j = 0; j < contact.corners.size(); j++)
             {
                 c.corners[j].force = this->opti.variable(vector3Size, this->optiSettings.horizon);
-
                 c.corners[j].position
                     = casadi::DM(std::vector<double>(contact.corners[j].position.data(),
                                                      contact.corners[j].position.data()
                                                          + contact.corners[j].position.size()));
+                c.corners[j].isEnabled = this->opti.parameter(1, this->optiSettings.horizon);
             }
         }
 
@@ -855,6 +1018,47 @@ struct CentroidalMPC::Impl
         this->opti.solver("sqpmethod", casadiOptions);
     }
 
+    /**
+     * Create the controller. The controller is a casadi function that takes several input and solve
+     * the optimization problem.
+     * @note The input of the controller are:
+     * 1. external_force
+     * 2. external_torque
+     * 3. com_current
+     * 4. dcom_current
+     * 5. angular_momentum_current
+     * 6. com_reference
+     * 7. angular_momentum_reference
+     * 8. if warm start is enabled:
+     *   a. com_warmstart
+     *   b. angular_momentum_warmstart
+     * 9. for each contact:
+     *   a. contact_current_position
+     *   b. contact_nominal_position
+     *   c. contact_orientation
+     *   d. contact_is_enable
+     *   e. contact_amount_of_normal_force_respect_to_robot_weight
+     *   f. contact_upper_limit_position
+     *   g. contact_lower_limit_position
+     *   h. for each corner:
+     *     - contact_corner_is_enable
+     *   i. if warm start is enabled:
+     *      -. contact_position_warmstart
+     *      -. for each corner:
+     *        []. contact_corner_force_warmstart
+     * @note The output of the controller are:
+     * 1. for each contact:
+     *   a. contact_is_enable
+     *   b. contact_position
+     *   c. contact_orientation
+     *   d. for each corner:
+     *     -. contact_corner_is_enable
+     *     -. contact_corner_force
+     * 2. com
+     * 3. dcom
+     * 4. angular_momentum
+     * @return the casadi function
+     */
     casadi::Function createController()
     {
         using Sl = casadi::Slice;
@@ -868,7 +1072,8 @@ struct CentroidalMPC::Impl
         auto& externalForce = this->optiVariables.externalForce;
         auto& externalTorque = this->optiVariables.externalTorque;
 
-        // prepare the input of the ode
+        // prepare the input of the ode as vector. The order is the Impl::ode described in the ode
+        // function documentation
         std::vector<casadi::MX> odeInput;
         odeInput.push_back(externalForce);
         odeInput.push_back(externalTorque);
@@ -880,11 +1085,13 @@ struct CentroidalMPC::Impl
             odeInput.push_back(contact.position(Sl(), Sl(0, -1)));
             odeInput.push_back(contact.orientation);
             odeInput.push_back(contact.isEnabled);
+            odeInput.push_back(contact.isNotMovable);
             odeInput.push_back(contact.linearVelocity);
 
             for (const auto& corner : contact.corners)
             {
                 odeInput.push_back(corner.force);
+                odeInput.push_back(corner.isEnabled);
             }
         }
 
@@ -907,20 +1114,16 @@ struct CentroidalMPC::Impl
         this->opti.subject_to(extractFutureValuesFromState(dcom) == fullTrajectory[1]);
         this->opti.subject_to(extractFutureValuesFromState(angularMomentum) == fullTrajectory[2]);
 
-        // double z_min = 0.68;
-        // double z_max = 0.705;
-
-        // // we define the following controller barrier function for the first
-        // // auto b_x_1 = -2 / ((com(2, 1) - z_min) * (-z_max + com(2, 1)));
-        // // auto b_x_0 = -2 / ((com(2, 0) - z_min) * (-z_max + com(2, 0)));
-
-        // double gamma = 0.6;
-
-        // auto h = -0.5 * (com(2, Sl()) - z_min) * (-z_max + com(2, Sl()));
-        // for (int i = 0; i < 1; i++)
-        // {
-        //     this->opti.subject_to(h(i + 1) + (gamma - 1) * h(i) >= 0);
-        // }
+        if (this->comLimits.enableZLimit)
+        {
+            auto h = -this->comLimits.cbfMultiplier * (com(2, Sl()) - this->comLimits.zMin)
+                     * (com(2, Sl()) - this->comLimits.zMax);
+            for (int i = 0; i < std::min(this->comLimits.cbfHorizon, this->optiSettings.horizon);
+                 i++)
+            {
+                this->opti.subject_to(h(i + 1) + (this->comLimits.cbfGain - 1) * h(i) >= 0);
+            }
+        }
 
         // footstep dynamics
         std::size_t contactIndex = 0;
@@ -1009,15 +1212,20 @@ struct CentroidalMPC::Impl
                     * casadi::MX::sumsqr(contact.nominalPosition - contact.position);
 
             averageForce = casadi::MX::vertcat(
-                {contact.isEnabled * contact.corners[0].force(0, Sl()) / contact.corners.size(),
-                 contact.isEnabled * contact.corners[0].force(1, Sl()) / contact.corners.size(),
-                 contact.isEnabled * contact.corners[0].force(2, Sl()) / contact.corners.size()});
+                {contact.corners[0].isEnabled * contact.corners[0].force(0, Sl())
+                     / contact.corners.size(),
+                 contact.corners[0].isEnabled * contact.corners[0].force(1, Sl())
+                     / contact.corners.size(),
+                 contact.corners[0].isEnabled * contact.corners[0].force(2, Sl())
+                     / contact.corners.size()});
             for (int i = 1; i < contact.corners.size(); i++)
             {
                 averageForce += casadi::MX::vertcat(
-                    {contact.isEnabled * contact.corners[i].force(0, Sl()) / contact.corners.size(),
-                     contact.isEnabled * contact.corners[i].force(1, Sl()) / contact.corners.size(),
-                     contact.isEnabled * contact.corners[i].force(2, Sl())
+                    {contact.corners[i].isEnabled * contact.corners[i].force(0, Sl())
+                         / contact.corners.size(),
+                     contact.corners[i].isEnabled * contact.corners[i].force(1, Sl())
+                         / contact.corners.size(),
+                     contact.corners[i].isEnabled * contact.corners[i].force(2, Sl())
                          / contact.corners.size()});
             }
 
@@ -1089,12 +1297,22 @@ struct CentroidalMPC::Impl
             concatenateInput(contact.nominalPosition, "contact_" + key + "_nominal_position");
             concatenateInput(contact.orientation, "contact_" + key + "_orientation_input");
             concatenateInput(contact.isEnabled, "contact_" + key + "is_enable_in");
+            concatenateInput(contact.isNotMovable, "contact_" + key + "_is_not_movable");
             concatenateInput(contact.amountOfNormalForceRespectToRobotWeight,
                              "contact_" + key + "_amount_of_normal_force_respect_to_robot_weight");
             concatenateInput(contact.upperLimitPosition,
                              "contact_" + key + "_upper_limit_position");
             concatenateInput(contact.lowerLimitPosition,
                              "contact_" + key + "_lower_limit_position");
+
+            std::size_t cornerIndex = 0;
+            for (const auto& corner : contact.corners)
+            {
+                concatenateInput(corner.isEnabled,
+                                 "contact_" + key + "_corner_" + std::to_string(cornerIndex)
+                                     + "_is_enable_in");
+                cornerIndex++;
+            }
 
             // if warm start is enabled we need to add the initial guess for the contact position
             // and the force
@@ -1116,9 +1334,12 @@ struct CentroidalMPC::Impl
             concatenateOutput(contact.position, "contact_" + key + "_position");
             concatenateOutput(contact.orientation, "contact_" + key + "_orientation");
 
-            std::size_t cornerIndex = 0;
+            cornerIndex = 0;
             for (const auto& corner : contact.corners)
             {
+                concatenateOutput(corner.isEnabled,
+                                  "contact_" + key + "_corner_" + std::to_string(cornerIndex)
+                                      + "_is_enable");
                 concatenateOutput(corner.force,
                                   "contact_" + key + "_corner_" + std::to_string(cornerIndex)
                                       + "_force");
@@ -1158,7 +1379,15 @@ bool CentroidalMPC::initialize(std::weak_ptr<const ParametersHandler::IParameter
         return false;
     }
 
-    m_pimpl->resizeControllerInputs();
+    if (!m_pimpl->resizeControllerInputs())
+    {
+        log()->error("{} Unable to resize the controller inputs.", errorPrefix);
+        return false;
+    }
+
+    // Create the controller. The controller is a casadi function that takes several input and solve
+    // the optimization problem. The input serialization is described in the Impl::createController
+    // documentation.
     m_pimpl->controller = m_pimpl->createController();
     m_pimpl->fsm = Impl::FSM::Initialized;
 
@@ -1212,47 +1441,55 @@ bool CentroidalMPC::advance()
         return false;
     }
 
-    // get the solution
-    auto it = controllerOutput.begin();
-
-    ContactListMap contactListMap = m_pimpl->output.contactPhaseList.lists();
-    for (auto& [key, contact] : m_pimpl->output.contacts)
-    {
-        ContactList& contactList = contactListMap.at(key);
-
+    // we now deserialize the output. The order is specified in documentation of
+    // Impl::createController
+    auto isActive = [](double activeValue) -> bool { return activeValue > 0.5; };
+    auto findIndexActiveContact = [&](casadi::DMVector::iterator activeContactVector) -> int {
         // this is required for toEigen
         using namespace BipedalLocomotion::Conversions;
 
-        int index = toEigen(*it).size();
-        const int size = toEigen(*it).size();
-        for (int i = 0; i < size; i++)
+        if (isActive(toEigen(*activeContactVector)(0)))
+        {
+            return 0;
+        }
+
+        int index = toEigen(*activeContactVector).size();
+        const int size = toEigen(*activeContactVector).size();
+
+        // find the index of the first element where the contact is active and the previous contact
+        // was not active
+        for (int i = 1; i < size; i++)
         {
             // read it as: "if the contact is active at a given time instant"
-            if (toEigen(*it)(i) > 0.5)
+            if (isActive(toEigen(*activeContactVector)(i)))
             {
-                // if the contact is active now
-                if (i == 0)
-                {
-                    break;
-                } // in this case we break if the contact is active and at the previous time
-                  // step it was not active
-                else if (toEigen(*it)(i - 1) < 0.5)
+                // in this case we break if the contact is active and at the previous time
+                // step it was not active
+                if (!isActive(toEigen(*activeContactVector)(i - 1)))
                 {
                     index = i;
                     break;
                 }
             }
         }
+        return index;
+    };
 
-        // check if now we are in contact
-        const double isEnabled = toEigen(*it)(0);
+    auto it = controllerOutput.begin();
+    ContactListMap contactListMap = m_pimpl->output.contactPhaseList.lists();
+    for (auto& [key, contact] : m_pimpl->output.contacts)
+    {
+        using namespace BipedalLocomotion::Conversions;
+        ContactList& contactList = contactListMap.at(key);
+        int activeContactVectorSize = toEigen(*it).size();
 
-        /// Position
+        const int index = findIndexActiveContact(it);
+        //////////// Position
         std::advance(it, 1);
         contact.pose.translation(toEigen(*it).leftCols<1>());
 
         // In this case the contact is not active and there will be a next planned contact
-        if (index < size)
+        if (index < activeContactVectorSize)
         {
             const std::chrono::nanoseconds nextPlannedContactTime
                 = m_pimpl->currentTime + m_pimpl->optiSettings.samplingTime * index;
@@ -1281,17 +1518,21 @@ bool CentroidalMPC::advance()
             }
         }
 
+        ////// Orientation
         std::advance(it, 1);
-
-        // get the orientation
         contact.pose.quat(Eigen::Quaterniond(
             Eigen::Map<const Eigen::Matrix3d>(toEigen(*it).leftCols<1>().data())));
 
-        // get the forces
+        ///// Get the forces (for each corner we check if is active and then we get the force. If
+        /// not active the force is set to zero)
         std::advance(it, 1);
-
         for (std::size_t cornerIndex = 0; cornerIndex < contact.corners.size(); cornerIndex++)
         {
+            // check if the corner is active
+            const bool isCornerActive = isActive(toEigen(*it)(0));
+
+            // get the force
+            std::advance(it, 1);
             if (m_pimpl->optiSettings.isWarmStartEnabled)
             {
                 toEigen(*m_pimpl->initialGuess.contactsInitialGuess[key].contactForce[cornerIndex])
@@ -1301,7 +1542,7 @@ bool CentroidalMPC::advance()
                     .rightCols<1>()
                     = toEigen(*it).rightCols<1>();
             }
-            if (isEnabled > 0.5)
+            if (isCornerActive)
             {
                 contact.corners[cornerIndex].force = toEigen(*it).leftCols<1>();
             } else
@@ -1309,6 +1550,7 @@ bool CentroidalMPC::advance()
                 contact.corners[cornerIndex].force.setZero();
             }
 
+            // we move it for the next iteration
             std::advance(it, 1);
         }
     }
@@ -1316,12 +1558,14 @@ bool CentroidalMPC::advance()
     // update the contact phase list
     m_pimpl->output.contactPhaseList.setLists(contactListMap);
 
+    ///// com
     for (int i = 0; i < m_pimpl->output.comTrajectory.size(); i++)
     {
         using namespace BipedalLocomotion::Conversions;
         m_pimpl->output.comTrajectory[i] = toEigen(*it).col(i);
     }
 
+    ///// dcom
     std::advance(it, 1);
     for (int i = 0; i < m_pimpl->output.comVelocityTrajectory.size(); i++)
     {
@@ -1329,6 +1573,7 @@ bool CentroidalMPC::advance()
         m_pimpl->output.comVelocityTrajectory[i] = toEigen(*it).col(i);
     }
 
+    ////// angular
     std::advance(it, 1);
     for (int i = 0; i < m_pimpl->output.angularMomentumTrajectory.size(); i++)
     {
@@ -1413,7 +1658,18 @@ bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
 bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
                              Eigen::Ref<const Eigen::Vector3d> dcom,
                              Eigen::Ref<const Eigen::Vector3d> angularMomentum,
-                             const Math::Wrenchd& externalWrench)
+                             const std::unordered_map<std::string, std::vector<bool>>& cornerStatus)
+{
+    const Math::Wrenchd dummy = Math::Wrenchd::Zero();
+    return this->setState(com, dcom, angularMomentum, dummy, cornerStatus);
+}
+
+bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
+                             Eigen::Ref<const Eigen::Vector3d> dcom,
+                             Eigen::Ref<const Eigen::Vector3d> angularMomentum,
+                             const Math::Wrenchd& externalWrench,
+                             const std::unordered_map<std::string, std::vector<bool>>& cornerStatus
+                             /** = {}*/)
 {
     constexpr auto errorPrefix = "[CentroidalMPC::setState]";
     assert(m_pimpl);
@@ -1437,6 +1693,52 @@ bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
 
     toEigen(*inputs.externalForce).leftCols<1>() = externalWrench.force();
     toEigen(*inputs.externalTorque).leftCols<1>() = externalWrench.torque();
+
+    for (const auto& [key, status] : cornerStatus)
+    {
+        auto contact = inputs.contacts.find(key);
+        if (contact == inputs.contacts.end())
+        {
+            std::string contactNames;
+            for (const auto& [key, _] : inputs.contacts)
+            {
+                contactNames += "'" + key + "' ";
+            }
+
+            log()->error("{} Unable to find the contact named {}. The contact saved in the "
+                         "controller are: {}",
+                         errorPrefix,
+                         key,
+                         contactNames);
+            return false;
+        }
+
+        using namespace BipedalLocomotion::Conversions;
+        auto contactIsEnabledVector(toEigen(*(contact->second.isEnabled)));
+
+        // is disabled
+        if (contactIsEnabledVector(0, 0) < 0.5)
+        {
+            continue;
+        }
+        for (std::size_t i = 0; i < status.size(); i++)
+        {
+            auto cornerIsEnabledVector(toEigen(*(contact->second.isCornerEnabled[i])));
+
+            // find the index of the first element where the contact not active (lower than 0.5)
+            int index = cornerIsEnabledVector.size();
+            for (int j = 1; j < cornerIsEnabledVector.size(); j++)
+            {
+                if (cornerIsEnabledVector(0, j) < 0.5)
+                {
+                    index = j;
+                    break;
+                }
+            }
+
+            cornerIsEnabledVector.middleCols(0, index - 1).setConstant(status[i] ? 1.0 : 0.0);
+        }
+    }
 
     return true;
 }
@@ -1502,11 +1804,19 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
         // Maximum admissible contact force. It is expressed in the contact body frame
         toEigen(*inputs.contacts[key].isEnabled).setZero();
 
+        // The contact is movable if the contact is active
+        toEigen(*inputs.contacts[key].isNotMovable).setZero();
+
         // Amount of normal force respect to the robot weight
         toEigen(*inputs.contacts[key].amountOfNormalForceRespectToRobotWeight).setZero();
 
         // The nominal contact position is a parameter that regularize the solution
         toEigen(*inputs.contacts[key].nominalPosition).setZero();
+
+        for (auto& cornerEnabled : inputs.contacts[key].isCornerEnabled)
+        {
+            toEigen(*cornerEnabled).setZero();
+        }
     }
 
     const std::chrono::nanoseconds absoluteTimeHorizon
@@ -1571,12 +1881,219 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
                 .middleCols(index, numberOfSamples)
                 .setConstant(isEnabled);
 
+            // set if the contact is movable or not. If the contact is active the contact is not
+            // movable moreover we want that the contact is not movable at least 3 sample before the
+            // beginning of the phase
+            toEigen(*(inputContact->second.isNotMovable))
+                .middleCols(index, numberOfSamples)
+                .setConstant(isEnabled);
+
+            if (this->m_pimpl->optiSettings.adjustmentPreventionKnots > 0)
+            {
+                int indexFromWhichTheContactCannotBeModified
+                    = std::max(0, index - m_pimpl->optiSettings.adjustmentPreventionKnots);
+                int numberOfSamplesFromWhichTheContactCannotBeModified
+                    = index - indexFromWhichTheContactCannotBeModified;
+
+                toEigen(*(inputContact->second.isNotMovable))
+                    .middleCols(indexFromWhichTheContactCannotBeModified,
+                                numberOfSamplesFromWhichTheContactCannotBeModified)
+                    .setConstant(isEnabled);
+
+                toEigen(*(inputContact->second.nominalPosition))
+                    .middleCols(indexFromWhichTheContactCannotBeModified,
+                                numberOfSamplesFromWhichTheContactCannotBeModified)
+                    .colwise()
+                    = contact->pose.translation();
+
+                // this is required to reshape the matrix into a vector
+                const Eigen::Matrix3d orientation = contact->pose.quat().toRotationMatrix();
+                toEigen(*(inputContact->second.orientation))
+                    .middleCols(indexFromWhichTheContactCannotBeModified,
+                                numberOfSamplesFromWhichTheContactCannotBeModified)
+                    .colwise()
+                    = Eigen::Map<const Eigen::VectorXd>(orientation.data(), orientation.size());
+            }
+
             toEigen(*(inputContact->second.amountOfNormalForceRespectToRobotWeight))
                 .middleCols(index, numberOfSamples)
                 .setConstant(1.0 / double(numberOfActiveContacts));
+
+            // Set the corner to be enabled by default we assume that the contact is active
+            // TODO(GR) if we want to consider planned contact where some corners are not active we
+            // need to change the following for loop and the definition of planned contact.
+            for (auto& cornerEnabled : inputContact->second.isCornerEnabled)
+            {
+                toEigen(*cornerEnabled).middleCols(index, numberOfSamples).setConstant(isEnabled);
+            }
         }
 
         index += numberOfSamples;
+    }
+
+    // smooth the nominal amount of normal force respect to the robot weight
+    // TD(GR) this is a temporary solution and it is valid only for bipedal robots. A more general
+    // solution should be implemented
+    for (auto& [key, contact] : inputs.contacts)
+    {
+        using namespace BipedalLocomotion::Conversions;
+
+        auto amountOfNormalForceRespectToRobotWeight
+            = toEigen(*contact.amountOfNormalForceRespectToRobotWeight);
+
+        // the trajectory is composed by the following values:
+        // - 0 if the contact is not active
+        // - 1 if is the only contact active
+        // - 1 / numberOfActiveContacts if there are more than one contact active
+        // First of all I need to find the index of all the trajectories where there are more than
+        // one contact active
+        std::vector<int> indexes;
+        for (int i = 0; i < amountOfNormalForceRespectToRobotWeight.cols(); i++)
+        {
+            if (amountOfNormalForceRespectToRobotWeight(0, i) > 0.1
+                && amountOfNormalForceRespectToRobotWeight(0, i) < 0.9)
+            {
+                indexes.push_back(i);
+            }
+        }
+
+        // now I need to split the indexes in groups of consecutive indexes
+        std::vector<std::vector<int>> groups;
+        if (indexes.size() > 0)
+        {
+            groups.push_back({indexes[0]});
+            for (int i = 1; i < indexes.size(); i++)
+            {
+                if (indexes[i] == indexes[i - 1] + 1)
+                {
+                    groups.back().push_back(indexes[i]);
+                } else
+                {
+                    groups.push_back({indexes[i]});
+                }
+            }
+        }
+
+        for (const auto& group : groups)
+        {
+
+            // print the group
+            // std::string elements = "";
+            // std::string groupValues = "";
+            // for (const auto& i : group)
+            // {
+            //     elements += std::to_string(i) + " ";
+            //     groupValues += std::to_string(amountOfNormalForceRespectToRobotWeight(0, i)) + " ";
+            // }
+            // log()->info("Contact {} - Group: {}", key, elements);
+            // log()->info("Contact {} - Group Values: {}", key, groupValues);
+
+            // there are several cases:
+            // - the first element of the group is the first element of the trajectory but not the
+            // last
+            // - the last element of the group is the last element of the trajectory but not the
+            // first
+            // - the first element of the group is the first element of the trajectory and the last
+            // is the last element of the trajectory
+            // - the group is in the middle of the trajectory
+
+            // the first element of the group is the first element of the trajectory but not the
+            // last
+            if (group.front() == 0
+                && group.back() != amountOfNormalForceRespectToRobotWeight.cols() - 1)
+            {
+                const double endValue
+                    = amountOfNormalForceRespectToRobotWeight(0, group.back() + 1);
+                const double initialValue = contact.previousAmountOfNormalForceRespectToRobotWeight;
+                int numberOfSamples = group.size() + 2; // we get the first and the last element
+
+                for (int i = 0; i < group.size(); i++)
+                {
+                    amountOfNormalForceRespectToRobotWeight(0, group[i])
+                        = endValue * ((i + 1) / double(numberOfSamples))
+                          + initialValue * (1 - (i + 1) / double(numberOfSamples));
+                }
+            }
+
+            // the last element of the group is the last element of the trajectory but not the first
+            if (group.front() != 0
+                && group.back() == amountOfNormalForceRespectToRobotWeight.cols() - 1)
+            {
+                const double initialValue
+                    = amountOfNormalForceRespectToRobotWeight(0, group.front() - 1);
+
+                // we smooth the first 5 samples
+                int amountOfSamplesToSmooth = (group.size() < 6 ? group.size() - 1 : 5) + group.front();
+                const double endValue = amountOfNormalForceRespectToRobotWeight(0, amountOfSamplesToSmooth);
+                int numberOfSamples = group.size() + 2; // we get the first and the last element
+
+                for (int i = 0; i < group.size(); i++)
+                {
+                    amountOfNormalForceRespectToRobotWeight(0, group[i])
+                        = endValue * ((i + 1) / double(numberOfSamples))
+                          + initialValue * (1 - (i + 1) / double(numberOfSamples));
+                }
+            }
+
+            // the first element of the group is the first element of the trajectory and the last is
+            // the last element of the trajectory
+            if (group.front() == 0
+                && group.back() == amountOfNormalForceRespectToRobotWeight.cols() - 1)
+            {
+                const double initialValue = contact.previousAmountOfNormalForceRespectToRobotWeight;
+                const double endValue = amountOfNormalForceRespectToRobotWeight(
+                    0, contact.lastTrajectoryNumberOfIndexForSmoothing);
+                int numberOfSamples = group.size() + 2; // we get the first and the last element
+
+                for (int i = 0; i < group.size(); i++)
+                {
+                    amountOfNormalForceRespectToRobotWeight(0, group[i])
+                        = endValue * ((i + 1) / double(numberOfSamples))
+                          + initialValue * (1 - (i + 1) / double(numberOfSamples));
+                }
+
+                contact.lastTrajectoryNumberOfIndexForSmoothing--;
+                if (contact.lastTrajectoryNumberOfIndexForSmoothing == 0)
+                {
+                    contact.lastTrajectoryNumberOfIndexForSmoothing = 5;
+                }
+            }
+
+            // the group is in the middle of the trajectory
+            if (group.front() != 0
+                && group.back() != amountOfNormalForceRespectToRobotWeight.cols() - 1)
+            {
+                const double initialValue
+                    = amountOfNormalForceRespectToRobotWeight(0, group.front() - 1);
+                const double endValue
+                    = amountOfNormalForceRespectToRobotWeight(0, group.back() + 1);
+                int numberOfSamples = group.size() + 2; // we get the first and the last element
+
+                for (int i = 0; i < group.size(); i++)
+                {
+                    amountOfNormalForceRespectToRobotWeight(0, group[i])
+                        = endValue * ((i + 1) / double(numberOfSamples))
+                          + initialValue * (1 - (i + 1) / double(numberOfSamples));
+                }
+            }
+        }
+
+        // update the previous value
+        contact.previousAmountOfNormalForceRespectToRobotWeight
+            = amountOfNormalForceRespectToRobotWeight(0, 0);
+    }
+
+    // print the isEnable vector
+    for (const auto& [key, contact] : inputs.contacts)
+    {
+        using namespace BipedalLocomotion::Conversions;
+
+        log()->info("Contact: {}", key);
+        log()->info("E: {}", toEigen(*contact.isEnabled));
+        log()->info("M: {}", toEigen(*contact.isNotMovable));
+        log()->info("N: {}", toEigen(*contact.amountOfNormalForceRespectToRobotWeight));
+        // log()->info("P {}", toEigen(*contact.nominalPosition));
+        // log()->info("O {}", toEigen(*contact.orientation));
     }
 
     assert(index == m_pimpl->optiSettings.horizon);

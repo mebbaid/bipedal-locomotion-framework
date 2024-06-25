@@ -84,6 +84,7 @@ public:
      * |    `angular_momentum_weight`    |     `double`     |                                 Weight associated to the angular momentum. The higher the weight, the more the angular momentum will follow the desired one.                                 |    Yes    |
      * | `contact_force_symmetry_weight` |     `double`     |                 Weight associated to the symmetry of the contact forces. The higher the weight, the more the contact forces associated to the same contact will be symmetric                 |    Yes    |
      * |         `linear_solver`         |     `string`     |                             Linear solver used by ipopt. Please check https://coin-or.github.io/Ipopt/#PREREQUISITES for the available solvers (default `mumps`).                            |    Yes    |
+     * |  `adjustment_prevention_time`   |     `double`     |         Time delta after which is not possible to adjust the contact position. This is subtracted to the activation time to prevent high adjustment next to the ground (default value 0s).   |     No    |
      * |        `ipopt_tolerance`        |     `double`     |                        Determines the convergence tolerance for the algorithm (default value is \f$10^{-8}\f$ (https://coin-or.github.io/Ipopt/OPTIONS.html#OPT_tol).                        |     No    |
      * |      `ipopt_max_iteration`      |       `int`      |                                                            The maximum number of iterations of ipopt (The default value is 3000).                                                            |     No    |
      * |        `solver_verbosity`       |       `int`      |                                                Verbosity of the solver. The higher the value, the higher the verbosity (Default value is `0`)                                                |     No    |
@@ -131,6 +132,21 @@ public:
      * @param dcom velocity of the CoM expressed in a frame centered in the CoM and oriented as the
      * inertial frame.
      * @param angularMomentum centroidal angular momentum.
+     * @return True in case of success, false otherwise.
+     * @note This function needs to be called before advance.
+     * @note The external wrench is assumed to be zero.
+     */
+    bool setState(Eigen::Ref<const Eigen::Vector3d> com,
+                  Eigen::Ref<const Eigen::Vector3d> dcom,
+                  Eigen::Ref<const Eigen::Vector3d> angularMomentum,
+                  const std::unordered_map<std::string, std::vector<bool>>& cornerStatus);
+
+    /**
+     * Set the state of the centroidal dynamics.
+     * @param com position of the CoM expressed in the inertial frame.
+     * @param dcom velocity of the CoM expressed in a frame centered in the CoM and oriented as the
+     * inertial frame.
+     * @param angularMomentum centroidal angular momentum.
      * @param externalWrench optional parameter used to represent an external wrench applied to the
      * robot CoM.
      * @return True in case of success, false otherwise.
@@ -139,7 +155,8 @@ public:
     bool setState(Eigen::Ref<const Eigen::Vector3d> com,
                   Eigen::Ref<const Eigen::Vector3d> dcom,
                   Eigen::Ref<const Eigen::Vector3d> angularMomentum,
-                  const Math::Wrenchd& externalWrench);
+                  const Math::Wrenchd& externalWrench,
+                  const std::unordered_map<std::string, std::vector<bool>>& cornerStatus = {});
 
     /**
      * Set the reference trajectories for the CoM and the centroidal angular momentum.
