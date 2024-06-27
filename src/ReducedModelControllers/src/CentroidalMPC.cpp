@@ -97,6 +97,7 @@ struct CentroidalMPC::Impl
 
     struct StableConstants
     {
+        bool  enable_stability{true};
         double alpha{0.1};
         double k1{1.0};
         double k2{1.0};
@@ -235,8 +236,8 @@ struct CentroidalMPC::Impl
         std::map<std::string, CasadiContactWithConstraints> contacts;
 
         /**< Optimization variables from the adaptive redesign*/
-        casadi::MX z1;
-        casadi::MX z2;
+        // casadi::MX z1;
+        // casadi::MX z2;
         casadi::MX thetaHat;
 
         casadi::MX comReference;
@@ -461,14 +462,13 @@ struct CentroidalMPC::Impl
                              this->weights.contactForceSymmetry);
         ok = ok && getParameter(ptr, "force_weight", this->weights.force);
 
-        ok = ok && getParameter(ptr, "angular_momentum_norm_limit", this->stableConstants.alpha);
-        ok = ok && getParameter(ptr, "adaptive_feedback_k1", this->stableConstants.k1);
-        ok = ok && getParameter(ptr, "adaptive_feedback_k2", this->stableConstants.k2);
-
         // initialize the friction cone
         ok = ok && frictionCone.initialize(ptr);
         ok = ok && getParameter(ptr, "solver_name", this->optiSettings.solverName);
         ok = ok && getParameter(ptr, "enable_z_limit", this->comLimits.enableZLimit);
+
+        ok = ok && getParameter(ptr, "enable_stability_cstr", this->stableConstants.enable_stability);
+
 
         if (!ok)
         {
@@ -530,6 +530,24 @@ struct CentroidalMPC::Impl
             }
         }
 
+        if (this->stableConstants.enable_stability)
+        {
+            if (!getParameter(ptr, "angular_momentum_norm_limit", this->stableConstants.alpha))
+            {
+                return false;
+            }
+
+            if (!getParameter(ptr, "adaptive_feedback_k1", this->stableConstants.k1))
+            {
+                return false;
+            }
+
+            if (!getParameter(ptr, "adaptive_feedback_k2", this->stableConstants.k2))
+            {
+                return false;
+            }
+        }
+
         if (this->optiSettings.solverName != "ipopt" && this->optiSettings.solverName != "sqp")
         {
             log()->error("{} The solver name '{}' is not supported. The supported solvers are "
@@ -570,7 +588,7 @@ struct CentroidalMPC::Impl
      * Centroidal dynamics and contact position function.
      * @note the function has the following inputs:
      *     1. comReference
-     *     2. thetaHat     
+     *     2. thetaHat
      *     3. externalForce
      *     4. externalTorque
      *     5. com
@@ -630,7 +648,8 @@ struct CentroidalMPC::Impl
         ddcom = gravity + externalForce / mass;
         angularMomentumDerivative = externalTorque;
 
-        thetaHatDerivative = - this->stableConstants.k1 * (com - comReference) + dcom; // thetaHatDot = -z_2 ,  assuming accelaration ref being zero
+        thetaHatDerivative = -this->stableConstants.k1 * (com - comReference)
+                             + dcom; // thetaHatDot = -z_2 ,  assuming accelaration ref being zero
 
         std::vector<casadi::MX> input;
         input.push_back(comReference);
@@ -907,8 +926,8 @@ struct CentroidalMPC::Impl
         this->optiVariables.angularMomentum = this->opti.variable(vector3Size, stateHorizon);
 
         // create the variables for the stability constraints
-        this->optiVariables.z1 = this->opti.variable(vector3Size);
-        this->optiVariables.z2 = this->opti.variable(vector3Size);
+        // this->optiVariables.z1 = this->opti.variable(vector3Size);
+        // this->optiVariables.z2 = this->opti.variable(vector3Size);
         this->optiVariables.thetaHat = this->opti.variable(vector3Size, stateHorizon);
 
         // the casadi contacts depends on the maximum number of contacts
@@ -1118,9 +1137,12 @@ struct CentroidalMPC::Impl
         auto& angularMomentum = this->optiVariables.angularMomentum;
         auto& externalForce = this->optiVariables.externalForce;
         auto& externalTorque = this->optiVariables.externalTorque;
-	
-	auto& z1 = this->optiVariables.z1;
-        auto& z2 = this->optiVariables.z2;
+
+        // auto& z1 = this->optiVariables.z1;
+        // auto& z2 = this->optiVariables.z2;
+        // casadi::MX z1 = casadi::MX::sym("z1", 3);
+        // casadi::MX z2 = casadi::MX::sym("z2", 3);
+
         auto& thetaHat = this->optiVariables.thetaHat;
 
         auto& comReference = this->optiVariables.comReference;
@@ -1160,14 +1182,7 @@ struct CentroidalMPC::Impl
 
         this->opti.subject_to(this->optiVariables.thetaHatCurrent == thetaHat(Sl(), 0));
 
-
         // set the stability constraints
-        this->opti.subject_to(z1 == com(Sl(),1) - this->optiVariables.comReference(Sl(), 1));
-        this->opti.subject_to(z2 == dcom(Sl(),1) + this->stableConstants.k1 * (com(Sl(),1) - this->optiVariables.comReference(Sl(), 1)));
-
-        casadi::DM gravity = casadi::DM::zeros(3);
-        gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
-        auto u_adaptive = -(this->stableConstants.k1 + this->stableConstants.k2) * z2 + (this->stableConstants.k1 * this->stableConstants.k1) * z1 - gravity - this->optiVariables.thetaHatCurrent ; // assuming accelaration ref zero
         casadi::MX averageForce;
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
@@ -1184,16 +1199,38 @@ struct CentroidalMPC::Impl
                          / contact.corners.size()});
             }
         }
-        this->opti.subject_to(
-                    -casadi::MX::mtimes(z1(Sl(), 0).T(), z1(Sl(), 0))
-                        - casadi::MX::mtimes(z2(Sl(), 0).T(), z2(Sl(), 0))
-                        + casadi::MX::mtimes(z1(Sl(), 0).T(), z2(Sl(), 0))
-                        + casadi::MX::mtimes(z2(Sl(), 0).T(), averageForce - u_adaptive)
-                    <= 0.0);
 
+        if (this->stableConstants.enable_stability)
+        {
+            auto z1 = com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1);
+            auto z2 =  dcom(Sl(), 1)
+                    + this->stableConstants.k1
+                            * (com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1));
 
-        this->opti.subject_to(casadi::MX::mtimes(angularMomentum(Sl(),1).T() , angularMomentum(Sl(),1))  <= this->stableConstants.alpha );
+            // this->opti.subject_to(z1 == com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1));
+            // this->opti.subject_to(
+            //     z2
+            //     == dcom(Sl(), 1)
+            //            + this->stableConstants.k1
+            //                  * (com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1)));
 
+            casadi::DM gravity = casadi::DM::zeros(3);
+            gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
+            auto u_adaptive = -(this->stableConstants.k1 + this->stableConstants.k2) * z2
+                            + (this->stableConstants.k1 * this->stableConstants.k1) * z1 - gravity
+                            - this->optiVariables.thetaHatCurrent; // assuming accelaration ref zero
+
+            this->opti.subject_to(-casadi::MX::mtimes(z1(Sl(), 0).T(), z1(Sl(), 0))
+                                    - casadi::MX::mtimes(z2(Sl(), 0).T(), z2(Sl(), 0))
+                                    + casadi::MX::mtimes(z1(Sl(), 0).T(), z2(Sl(), 0))
+                                    + casadi::MX::mtimes(z2(Sl(), 0).T(), averageForce - u_adaptive)
+                                <= 0.0);
+
+            this->opti.subject_to(
+                casadi::MX::mtimes(angularMomentum(Sl(), 1).T(), angularMomentum(Sl(), 1))
+                <= this->stableConstants.alpha);
+
+        }
 
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
@@ -1283,8 +1320,8 @@ struct CentroidalMPC::Impl
         }
 
         // create the cost function
-        //auto& comReference = this->optiVariables.comReference;
-        //auto& angularMomentumReference = this->optiVariables.angularMomentumReference;
+        // auto& comReference = this->optiVariables.comReference;
+        // auto& angularMomentumReference = this->optiVariables.angularMomentumReference;
 
         // (max - mix) * exp(-i) + min
         casadi::DM weightCoMZ = casadi::DM::zeros(1, com.columns());
@@ -1301,30 +1338,30 @@ struct CentroidalMPC::Impl
               + this->weights.com(1) * casadi::MX::sumsqr(com(1, Sl()) - comReference(1, Sl()))
               + casadi::MX::sumsqr(weightCoMZ * (com(2, Sl()) - comReference(2, Sl())));
 
-        //casadi::MX averageForce;
+        // casadi::MX averageForce;
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
             cost += this->weights.contactPosition
                     * casadi::MX::sumsqr(contact.nominalPosition - contact.position);
-	    /*
-            averageForce = casadi::MX::vertcat(
-                {contact.corners[0].isEnabled * contact.corners[0].force(0, Sl())
-                     / contact.corners.size(),
-                 contact.corners[0].isEnabled * contact.corners[0].force(1, Sl())
-                     / contact.corners.size(),
-                 contact.corners[0].isEnabled * contact.corners[0].force(2, Sl())
-                     / contact.corners.size()});
-            for (int i = 1; i < contact.corners.size(); i++)
-            {
-                averageForce += casadi::MX::vertcat(
-                    {contact.corners[i].isEnabled * contact.corners[i].force(0, Sl())
+            /*
+                averageForce = casadi::MX::vertcat(
+                    {contact.corners[0].isEnabled * contact.corners[0].force(0, Sl())
                          / contact.corners.size(),
-                     contact.corners[i].isEnabled * contact.corners[i].force(1, Sl())
+                     contact.corners[0].isEnabled * contact.corners[0].force(1, Sl())
                          / contact.corners.size(),
-                     contact.corners[i].isEnabled * contact.corners[i].force(2, Sl())
+                     contact.corners[0].isEnabled * contact.corners[0].force(2, Sl())
                          / contact.corners.size()});
-            }
-	    */
+                for (int i = 1; i < contact.corners.size(); i++)
+                {
+                    averageForce += casadi::MX::vertcat(
+                        {contact.corners[i].isEnabled * contact.corners[i].force(0, Sl())
+                             / contact.corners.size(),
+                         contact.corners[i].isEnabled * contact.corners[i].force(1, Sl())
+                             / contact.corners.size(),
+                         contact.corners[i].isEnabled * contact.corners[i].force(2, Sl())
+                             / contact.corners.size()});
+                }
+            */
             for (const auto& corner : contact.corners)
             {
                 auto forceRateOfChange = casadi::MX::diff(corner.force.T()).T();
@@ -2080,7 +2117,8 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
             // for (const auto& i : group)
             // {
             //     elements += std::to_string(i) + " ";
-            //     groupValues += std::to_string(amountOfNormalForceRespectToRobotWeight(0, i)) + " ";
+            //     groupValues += std::to_string(amountOfNormalForceRespectToRobotWeight(0, i)) + "
+            //     ";
             // }
             // log()->info("Contact {} - Group: {}", key, elements);
             // log()->info("Contact {} - Group Values: {}", key, groupValues);
@@ -2120,8 +2158,10 @@ bool CentroidalMPC::setContactPhaseList(const Contacts::ContactPhaseList& contac
                     = amountOfNormalForceRespectToRobotWeight(0, group.front() - 1);
 
                 // we smooth the first 5 samples
-                int amountOfSamplesToSmooth = (group.size() < 6 ? group.size() - 1 : 5) + group.front();
-                const double endValue = amountOfNormalForceRespectToRobotWeight(0, amountOfSamplesToSmooth);
+                int amountOfSamplesToSmooth
+                    = (group.size() < 6 ? group.size() - 1 : 5) + group.front();
+                const double endValue
+                    = amountOfNormalForceRespectToRobotWeight(0, amountOfSamplesToSmooth);
                 int numberOfSamples = group.size() + 2; // we get the first and the last element
 
                 for (int i = 0; i < group.size(); i++)
