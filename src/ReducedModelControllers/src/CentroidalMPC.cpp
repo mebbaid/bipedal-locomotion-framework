@@ -1207,12 +1207,6 @@ struct CentroidalMPC::Impl
                     + this->stableConstants.k1
                             * (com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1));
 
-            // this->opti.subject_to(z1 == com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1));
-            // this->opti.subject_to(
-            //     z2
-            //     == dcom(Sl(), 1)
-            //            + this->stableConstants.k1
-            //                  * (com(Sl(), 1) - this->optiVariables.comReference(Sl(), 1)));
 
             casadi::DM gravity = casadi::DM::zeros(3);
             gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
