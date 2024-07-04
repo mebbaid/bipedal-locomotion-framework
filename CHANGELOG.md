@@ -25,12 +25,16 @@ All notable changes to this project are documented in this file.
 - Export the CoM velocity and the angular momentum trajectory in the `CentroidalMPC` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/818)
 - Require `iDynTree v10.0.0` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/832)
 - Refactor `YarpRobotControl::setReferences` function to include optional current joint values and avoid to switch control mode in `YarpRobotControl::setReferences` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/833)
+- Set the gravity vector as an input argument of the `CentroidalMPC` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/823)
+- Refactor the `Planners::UnicyclePlanner` to mimic the functionalitites of the planner deployed in [walking-controllers](https://github.com/robotology/walking-controllers) (https://github.com/ami-iit/bipedal-locomotion-framework/pull/844)
 
 ### Fixed
 - Fix the barrier logic for threads synchronization (https://github.com/ami-iit/bipedal-locomotion-framework/pull/811)
 - InstallBasicPackageFiles: Fix bug of OVERRIDE_MODULE_PATH that corrupt `CMAKE_MODULE_PATH` values set by blf transitive dependencies (https://github.com/ami-iit/bipedal-locomotion-framework/pull/827)
 - InstallBasicPackageFiles: Fix compatibility with CMake 3.29.1 (https://github.com/ami-iit/bipedal-locomotion-framework/pull/835)
 - Fix `YARPRobotLoggerDevice` excessively long time horizon for signals logged with `YARP_CLOCK` (https://github.com/ami-iit/bipedal-locomotion-framework/pull/839)
+- Fix crash in `robot_control.set_references()` if the passed vector is not the correct size (https://github.com/ami-iit/bipedal-locomotion-framework/pull/852)
+- Fix `VectorsCollectionClient.read_data(False)` to provide `collection` as output and avoid segmentation fault (https://github.com/ami-iit/bipedal-locomotion-framework/pull/850)
 
 ### Removed
 

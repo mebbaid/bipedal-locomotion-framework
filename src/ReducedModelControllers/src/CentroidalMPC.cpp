@@ -659,6 +659,7 @@ struct CentroidalMPC::Impl
         input.push_back(com);
         input.push_back(dcom);
         input.push_back(angularMomentum);
+        input.push_back(gravity);
 
         for (const auto& [key, contact] : casadiContacts)
         {
@@ -818,6 +819,9 @@ struct CentroidalMPC::Impl
 
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size));
         this->controllerInputs.angularMomentumCurrent = &this->vectorizedOptiInputs.back();
+
+        this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size));
+        this->controllerInputs.gravity = &this->vectorizedOptiInputs.back();
 
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, stateHorizon));
         this->controllerInputs.comReference = &this->vectorizedOptiInputs.back();
@@ -1159,6 +1163,7 @@ struct CentroidalMPC::Impl
         odeInput.push_back(com(Sl(), Sl(0, -1)));
         odeInput.push_back(dcom(Sl(), Sl(0, -1)));
         odeInput.push_back(angularMomentum(Sl(), Sl(0, -1)));
+        odeInput.push_back(gravity);
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
             odeInput.push_back(contact.position(Sl(), Sl(0, -1)));
@@ -1406,6 +1411,7 @@ struct CentroidalMPC::Impl
         concatenateInput(this->optiVariables.comCurrent, "com_current");
         concatenateInput(this->optiVariables.dcomCurrent, "dcom_current");
         concatenateInput(this->optiVariables.angularMomentumCurrent, "angular_momentum_current");
+        concatenateInput(this->optiVariables.gravity, "gravity");
 
         concatenateInput(this->optiVariables.comReference, "com_reference");
         concatenateInput(this->optiVariables.angularMomentumReference,
@@ -1774,6 +1780,26 @@ bool CentroidalMPC::setReferenceTrajectory(const std::vector<Eigen::Vector3d>& c
 
     return true;
 }
+
+bool CentroidalMPC::setGravity(const Eigen::Ref<Eigen::Vector3d>& gravity)
+{
+    constexpr auto errorPrefix = "[CentroidalMPC::setGravity]";
+    assert(m_pimpl);
+
+    if (m_pimpl->fsm == Impl::FSM::Idle)
+    {
+        log()->error("{} The controller is not initialized please call initialize() method.",
+                     errorPrefix);
+        return false;
+    }
+
+    auto& inputs = m_pimpl->controllerInputs;
+
+    using namespace BipedalLocomotion::Conversions;
+    toEigen(*inputs.gravity) = gravity;
+
+    return true;
+};
 
 bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
                              Eigen::Ref<const Eigen::Vector3d> dcom,
