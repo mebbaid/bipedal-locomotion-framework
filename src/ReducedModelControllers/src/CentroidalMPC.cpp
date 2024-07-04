@@ -594,7 +594,8 @@ struct CentroidalMPC::Impl
      *     5. com
      *     6. dcom
      *     7. angularMomentum
-     *     8. for each contact:
+     *     8. gravity
+     *     9. for each contact:
      *        1. position
      *        2. orientation
      *        3. isEnabled
@@ -1416,10 +1417,12 @@ struct CentroidalMPC::Impl
         concatenateInput(this->optiVariables.dcomCurrent, "dcom_current");
         concatenateInput(this->optiVariables.angularMomentumCurrent, "angular_momentum_current");
 
-        concatenateInput(this->optiVariables.gravity, "gravity");
         concatenateInput(this->optiVariables.comReference, "com_reference");
         concatenateInput(this->optiVariables.angularMomentumReference,
                          "angular_momentum_reference");
+
+        concatenateInput(this->optiVariables.gravity, "gravity");
+
 
         // if warm start is enabled we need to add the initial guess for the com and the angular
         // momentum
