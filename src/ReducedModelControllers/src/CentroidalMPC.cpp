@@ -236,8 +236,6 @@ struct CentroidalMPC::Impl
         std::map<std::string, CasadiContactWithConstraints> contacts;
 
         /**< Optimization variables from the adaptive redesign*/
-        // casadi::MX z1;
-        // casadi::MX z2;
         casadi::MX thetaHat;
 
         casadi::MX comReference;
@@ -247,6 +245,7 @@ struct CentroidalMPC::Impl
         casadi::MX angularMomentumCurrent;
         casadi::MX externalForce;
         casadi::MX externalTorque;
+        casadi::MX gravity;
 
         casadi::MX thetaHatCurrent;
     };
@@ -277,6 +276,7 @@ struct CentroidalMPC::Impl
         casadi::DM* angularMomentumCurrent;
         casadi::DM* externalForce;
         casadi::DM* externalTorque;
+        casadi::DM* gravity;
 
         casadi::DM* thetaHatCurrent;
     };
@@ -642,8 +642,7 @@ struct CentroidalMPC::Impl
 
         casadi::MX thetaHatDerivative = casadi::MX::sym("theta_hat_derivative", 3);
 
-        casadi::DM gravity = casadi::DM::zeros(3);
-        gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
+        casadi::MX gravity = casadi::MX::sym("gravity", 3);
 
         ddcom = gravity + externalForce / mass;
         angularMomentumDerivative = externalTorque;
@@ -743,16 +742,16 @@ struct CentroidalMPC::Impl
         this->output.angularMomentumTrajectory.resize(stateHorizon);
 
         // In case of no warmstart the variables are:
-        // - centroidalVariables = 8: external force + external torque + com current + dcom current
+        // - centroidalVariables = 9: external force + external torque + com current + dcom current
         //                            + current angular momentum + com reference
-        //                            + angular momentum reference + thetaHatCurrent
+        //                            + angular momentum reference + thetaHatCurrent + gravity
         // - contactVariables = 8: for each contact we have current position + nominal position
         //                          + orientation + is enabled + is movable
         //                          + amount of normal force respect to robot weight
         //                          + upper limit in position
         //                          + lower limit in position
         // - cornerVariables = 1: is enabled
-        constexpr std::size_t centroidalVariables = 8;
+        constexpr std::size_t centroidalVariables = 9;
         constexpr std::size_t contactVariables = 8;
 
         // compute the corner variables
@@ -803,6 +802,7 @@ struct CentroidalMPC::Impl
                                                                this->optiSettings.horizon));
         this->controllerInputs.thetaHatCurrent = &this->vectorizedOptiInputs.back();
 
+
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, //
                                                                this->optiSettings.horizon));
         this->controllerInputs.externalForce = &this->vectorizedOptiInputs.back();
@@ -820,14 +820,14 @@ struct CentroidalMPC::Impl
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size));
         this->controllerInputs.angularMomentumCurrent = &this->vectorizedOptiInputs.back();
 
-        this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size));
-        this->controllerInputs.gravity = &this->vectorizedOptiInputs.back();
-
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, stateHorizon));
         this->controllerInputs.comReference = &this->vectorizedOptiInputs.back();
 
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, stateHorizon));
         this->controllerInputs.angularMomentumReference = &this->vectorizedOptiInputs.back();
+
+        this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size));
+        this->controllerInputs.gravity = &this->vectorizedOptiInputs.back();
 
         if (this->optiSettings.isWarmStartEnabled)
         {
@@ -1001,6 +1001,8 @@ struct CentroidalMPC::Impl
                                                                   this->optiSettings.horizon);
 
         this->optiVariables.thetaHatCurrent = this->opti.parameter(vector3Size);
+
+        this->optiVariables.gravity = this->opti.parameter(vector3Size);
     }
 
     /**
@@ -1099,10 +1101,11 @@ struct CentroidalMPC::Impl
      * 6. angular_momentum_current
      * 7. com_reference
      * 8. angular_momentum_reference
-     * 9. if warm start is enabled:
+     * 9. gravity
+     * 10. if warm start is enabled:
      *   a. com_warmstart
      *   b. angular_momentum_warmstart
-     * 10. for each contact:
+     * 11. for each contact:
      *   a. contact_current_position
      *   b. contact_nominal_position
      *   c. contact_orientation
@@ -1141,6 +1144,7 @@ struct CentroidalMPC::Impl
         auto& angularMomentum = this->optiVariables.angularMomentum;
         auto& externalForce = this->optiVariables.externalForce;
         auto& externalTorque = this->optiVariables.externalTorque;
+        auto& gravity = this->optiVariables.gravity;
 
         // auto& z1 = this->optiVariables.z1;
         // auto& z2 = this->optiVariables.z2;
@@ -1411,8 +1415,8 @@ struct CentroidalMPC::Impl
         concatenateInput(this->optiVariables.comCurrent, "com_current");
         concatenateInput(this->optiVariables.dcomCurrent, "dcom_current");
         concatenateInput(this->optiVariables.angularMomentumCurrent, "angular_momentum_current");
-        concatenateInput(this->optiVariables.gravity, "gravity");
 
+        concatenateInput(this->optiVariables.gravity, "gravity");
         concatenateInput(this->optiVariables.comReference, "com_reference");
         concatenateInput(this->optiVariables.angularMomentumReference,
                          "angular_momentum_reference");
@@ -1544,6 +1548,26 @@ bool CentroidalMPC::isOutputValid() const
 {
     return m_pimpl->fsm == Impl::FSM::OutputValid;
 }
+
+bool CentroidalMPC::setGravity(const Eigen::Ref<Eigen::Vector3d>& gravity)
+{
+    constexpr auto errorPrefix = "[CentroidalMPC::setGravity]";
+    assert(m_pimpl);
+
+    if (m_pimpl->fsm == Impl::FSM::Idle)
+    {
+        log()->error("{} The controller is not initialized please call initialize() method.",
+                     errorPrefix);
+        return false;
+    }
+
+    auto& inputs = m_pimpl->controllerInputs;
+
+    using namespace BipedalLocomotion::Conversions;
+    toEigen(*inputs.gravity) = gravity;
+
+    return true;
+};
 
 bool CentroidalMPC::advance()
 {
@@ -1781,26 +1805,6 @@ bool CentroidalMPC::setReferenceTrajectory(const std::vector<Eigen::Vector3d>& c
     return true;
 }
 
-bool CentroidalMPC::setGravity(const Eigen::Ref<Eigen::Vector3d>& gravity)
-{
-    constexpr auto errorPrefix = "[CentroidalMPC::setGravity]";
-    assert(m_pimpl);
-
-    if (m_pimpl->fsm == Impl::FSM::Idle)
-    {
-        log()->error("{} The controller is not initialized please call initialize() method.",
-                     errorPrefix);
-        return false;
-    }
-
-    auto& inputs = m_pimpl->controllerInputs;
-
-    using namespace BipedalLocomotion::Conversions;
-    toEigen(*inputs.gravity) = gravity;
-
-    return true;
-};
-
 bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
                              Eigen::Ref<const Eigen::Vector3d> dcom,
                              Eigen::Ref<const Eigen::Vector3d> angularMomentum)
@@ -1812,18 +1816,18 @@ bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
 bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
                              Eigen::Ref<const Eigen::Vector3d> dcom,
                              Eigen::Ref<const Eigen::Vector3d> angularMomentum,
-                             const std::unordered_map<std::string, std::vector<bool>>& cornerStatus)
+                             const Math::Wrenchd& externalWrench)
 {
-    const Math::Wrenchd dummy = Math::Wrenchd::Zero();
-    return this->setState(com, dcom, angularMomentum, dummy, cornerStatus);
+    Eigen::Vector3d gravity = Eigen::Vector3d::Zero();
+    gravity[2] = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
+    return this->setState(com, dcom, angularMomentum, externalWrench, gravity);
 }
 
 bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
                              Eigen::Ref<const Eigen::Vector3d> dcom,
                              Eigen::Ref<const Eigen::Vector3d> angularMomentum,
                              const Math::Wrenchd& externalWrench,
-                             const std::unordered_map<std::string, std::vector<bool>>& cornerStatus
-                             /** = {}*/)
+                             Eigen::Ref<const Eigen::Vector3d> gravity)
 {
     constexpr auto errorPrefix = "[CentroidalMPC::setState]";
     assert(m_pimpl);
@@ -1848,51 +1852,7 @@ bool CentroidalMPC::setState(Eigen::Ref<const Eigen::Vector3d> com,
     toEigen(*inputs.externalForce).leftCols<1>() = externalWrench.force();
     toEigen(*inputs.externalTorque).leftCols<1>() = externalWrench.torque();
 
-    for (const auto& [key, status] : cornerStatus)
-    {
-        auto contact = inputs.contacts.find(key);
-        if (contact == inputs.contacts.end())
-        {
-            std::string contactNames;
-            for (const auto& [key, _] : inputs.contacts)
-            {
-                contactNames += "'" + key + "' ";
-            }
-
-            log()->error("{} Unable to find the contact named {}. The contact saved in the "
-                         "controller are: {}",
-                         errorPrefix,
-                         key,
-                         contactNames);
-            return false;
-        }
-
-        using namespace BipedalLocomotion::Conversions;
-        auto contactIsEnabledVector(toEigen(*(contact->second.isEnabled)));
-
-        // is disabled
-        if (contactIsEnabledVector(0, 0) < 0.5)
-        {
-            continue;
-        }
-        for (std::size_t i = 0; i < status.size(); i++)
-        {
-            auto cornerIsEnabledVector(toEigen(*(contact->second.isCornerEnabled[i])));
-
-            // find the index of the first element where the contact not active (lower than 0.5)
-            int index = cornerIsEnabledVector.size();
-            for (int j = 1; j < cornerIsEnabledVector.size(); j++)
-            {
-                if (cornerIsEnabledVector(0, j) < 0.5)
-                {
-                    index = j;
-                    break;
-                }
-            }
-
-            cornerIsEnabledVector.middleCols(0, index - 1).setConstant(status[i] ? 1.0 : 0.0);
-        }
-    }
+    toEigen(*inputs.gravity) = gravity;
 
     return true;
 }

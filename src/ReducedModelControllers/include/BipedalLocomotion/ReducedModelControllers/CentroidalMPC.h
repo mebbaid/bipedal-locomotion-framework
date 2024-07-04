@@ -77,20 +77,19 @@ public:
      * |:-------------------------------:|:----------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:---------:|
      * |         `sampling_time`         |     `double`     |                                                                                   Sampling time of the MPC.                                                                                  |    Yes    |
      * |          `time_horizon`         |     `double`     |                                            The time horizon of the MPC. The number of knots will be given by `floor(time_horizon / sampling_time)`                                           |    Yes    |
-     * |   `number_of_maximum_contacts`  |       `int`      |                            Integer representing the maximum number of contacts that can be established. For a bipedal is in general 2 (the feet) for a quadruped 4.                          |    Yes    |
+     * |   `number_of_maximum_contacts`  |       `int`      |                            Integer representing the maximum number of contacts that can be established. For a bipedal is in general 2 (the feet) for a quadruped 4.                           |    Yes    |
      * |           `com_weight`          | `vector<double>` |                       Weight of the CoM in the cost function. The Vector must contain three elements that will correspond to the weight in the x y and z coordinates.                        |    Yes    |
      * |    `contact_position_weight`    |     `double`     |                                           Weight related to the contact position regularization provided by the CentroidalMPC::setContactPhaseList                                           |    Yes    |
      * |  `force_rate_of_change_weight`  | `vector<double>` |                               Weight associated to the rate of change of the contact forces. The higher the weight, the more the contact forces will be smooth.                              |    Yes    |
      * |    `angular_momentum_weight`    |     `double`     |                                 Weight associated to the angular momentum. The higher the weight, the more the angular momentum will follow the desired one.                                 |    Yes    |
      * | `contact_force_symmetry_weight` |     `double`     |                 Weight associated to the symmetry of the contact forces. The higher the weight, the more the contact forces associated to the same contact will be symmetric                 |    Yes    |
      * |         `linear_solver`         |     `string`     |                             Linear solver used by ipopt. Please check https://coin-or.github.io/Ipopt/#PREREQUISITES for the available solvers (default `mumps`).                            |    Yes    |
-     * |  `adjustment_prevention_time`   |     `double`     |         Time delta after which is not possible to adjust the contact position. This is subtracted to the activation time to prevent high adjustment next to the ground (default value 0s).   |     No    |
      * |        `ipopt_tolerance`        |     `double`     |                        Determines the convergence tolerance for the algorithm (default value is \f$10^{-8}\f$ (https://coin-or.github.io/Ipopt/OPTIONS.html#OPT_tol).                        |     No    |
      * |      `ipopt_max_iteration`      |       `int`      |                                                            The maximum number of iterations of ipopt (The default value is 3000).                                                            |     No    |
      * |        `solver_verbosity`       |       `int`      |                                                Verbosity of the solver. The higher the value, the higher the verbosity (Default value is `0`)                                                |     No    |
      * |     `is_warm_start_enabled`     |      `bool`      |                                 True if the user wants to warm start the CoM, angular momentum, and contact location with the nominal value (Default `false`)                                |     No    |
      * |         `is_cse_enabled`        |      `bool`      | True if the Common subexpression elimination casadi option is enabled. This option is supported only by casadi 3.6.0 https://github.com/casadi/casadi/releases/tag/3.6.3  (Default `false` ) |     No    |
-     * |         `error_on_fail`         |      `bool`      |                True if the user wants to throw an error in case of failure. If false the optimizer will return an unfeasible solution. This may be dangerous!  (Default `true`)              |     No    |
+     *
      * Moreover for each contact \f$i\f$ where \f$ 0 \le i \le \f$ `number_of_maximum_contacts-1` it is required to define a group `CONTACT_<i>` that contains the following parameters
      * |       Parameter Name       |        Type      |                                                          Description                                                             | Mandatory |
      * |:--------------------------:|:----------------:|:--------------------------------------------------------------------------------------------------------------------------------:|:---------:|
@@ -132,14 +131,15 @@ public:
      * @param dcom velocity of the CoM expressed in a frame centered in the CoM and oriented as the
      * inertial frame.
      * @param angularMomentum centroidal angular momentum.
+     * @param externalWrench optional parameter used to represent an external wrench applied to the
+     * robot CoM.
      * @return True in case of success, false otherwise.
      * @note This function needs to be called before advance.
-     * @note The external wrench is assumed to be zero.
      */
     bool setState(Eigen::Ref<const Eigen::Vector3d> com,
                   Eigen::Ref<const Eigen::Vector3d> dcom,
                   Eigen::Ref<const Eigen::Vector3d> angularMomentum,
-                  const std::unordered_map<std::string, std::vector<bool>>& cornerStatus);
+                  const Math::Wrenchd& externalWrench);
 
     /**
      * Set the state of the centroidal dynamics.
@@ -149,6 +149,7 @@ public:
      * @param angularMomentum centroidal angular momentum.
      * @param externalWrench optional parameter used to represent an external wrench applied to the
      * robot CoM.
+     * @param gravity gravity vector.
      * @return True in case of success, false otherwise.
      * @note This function needs to be called before advance.
      */
@@ -156,7 +157,7 @@ public:
                   Eigen::Ref<const Eigen::Vector3d> dcom,
                   Eigen::Ref<const Eigen::Vector3d> angularMomentum,
                   const Math::Wrenchd& externalWrench,
-                  const std::unordered_map<std::string, std::vector<bool>>& cornerStatus = {});
+                  Eigen::Ref<const Eigen::Vector3d> gravity);
 
     /**
      * Set the reference trajectories for the CoM and the centroidal angular momentum.
@@ -172,6 +173,13 @@ public:
      */
     bool setReferenceTrajectory(const std::vector<Eigen::Vector3d>& com,
                                 const std::vector<Eigen::Vector3d>& angularMomentum);
+
+    /**
+     * Set the gravity vector used in the centroidal dynamics.
+     * @param gravity gravity vector.
+     * @return True in case of success, false otherwise.
+     */
+    bool setGravity(const Eigen::Ref<Eigen::Vector3d>& gravity);
 
     /**
      * Get the output of the controller
