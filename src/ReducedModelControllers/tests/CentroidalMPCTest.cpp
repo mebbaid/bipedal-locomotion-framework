@@ -84,7 +84,7 @@ void writeResultsToFile(const CentroidalMPC& mpc,
 TEST_CASE("CentroidalMPC")
 {
 
-    constexpr bool saveDataset = false;
+    constexpr bool saveDataset = true;
 
     using namespace std::chrono_literals;
     constexpr std::chrono::nanoseconds dT = 100ms;
@@ -128,6 +128,11 @@ TEST_CASE("CentroidalMPC")
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
     handler->setParameter("angular_momentum_weight", 1e5);
     handler->setParameter("contact_force_symmetry_weight", 10.0);
+    
+    // stability specific parameters
+    handler->setParameter("angular_momentum_norm_limit", 10.0);
+    handler->setParameter("adaptive_feedback_k1", 20.0);
+    handler->setParameter("adaptive_feedback_k2", 50.0);
 
     CentroidalMPC mpc;
 
