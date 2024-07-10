@@ -87,11 +87,11 @@ TEST_CASE("CentroidalMPC")
     constexpr bool saveDataset = true;
 
     using namespace std::chrono_literals;
-    constexpr std::chrono::nanoseconds dT = 100ms;
+    constexpr std::chrono::nanoseconds dT = 200ms;
 
     std::shared_ptr<IParametersHandler> handler = std::make_shared<StdImplementation>();
     handler->setParameter("sampling_time", dT);
-    handler->setParameter("time_horizon", 1s + 250ms);
+    handler->setParameter("time_horizon", 1s + 200ms);
     handler->setParameter("number_of_maximum_contacts", 2);
     handler->setParameter("number_of_slices", 1);
     handler->setParameter("static_friction_coefficient", 0.33);
@@ -123,16 +123,26 @@ TEST_CASE("CentroidalMPC")
     handler->setGroup("CONTACT_0", contact0Handler);
     handler->setGroup("CONTACT_1", contact1Handler);
 
-    handler->setParameter("com_weight", std::vector<double>{1, 1, 1000});
-    handler->setParameter("contact_position_weight", 1e3);
+    handler->setParameter("com_weight", std::vector<double>{1, 1, 200});
+    handler->setParameter("contact_position_weight", 2e2);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
-    handler->setParameter("angular_momentum_weight", 1e5);
+    handler->setParameter("angular_momentum_weight", 1e2);
     handler->setParameter("contact_force_symmetry_weight", 10.0);
+    handler->setParameter("force_weight", 10.0);
+    
+    // cbf parameters
+    handler->setParameter("enable_z_limit", false);
+    handler->setParameter("com_z_min", 0.68);
+    handler->setParameter("com_z_max", 0.71);
+    handler->setParameter("cbf_horizon", 1.0);
+    handler->setParameter("cbf_gain", 0.1);
+    handler->setParameter("cbf_multiplier", 0.5);
     
     // stability specific parameters
-    handler->setParameter("angular_momentum_norm_limit", 10.0);
-    handler->setParameter("adaptive_feedback_k1", 20.0);
-    handler->setParameter("adaptive_feedback_k2", 50.0);
+    handler->setParameter("enable_stability_cstr", true);
+    handler->setParameter("angular_momentum_norm_limit", 0.5);
+    handler->setParameter("adaptive_feedback_k1", 1.0);
+    handler->setParameter("adaptive_feedback_k2", 10.0);
 
     CentroidalMPC mpc;
 
