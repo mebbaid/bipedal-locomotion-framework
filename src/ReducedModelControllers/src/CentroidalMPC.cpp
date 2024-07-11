@@ -1223,6 +1223,7 @@ struct CentroidalMPC::Impl
         const casadi::DM zero = casadi::DM::zeros(frictionCone.getA().rows(), 1);
         casadi::MX rotatedFrictionCone;
 
+	casadi::MX averageForce;
         for (const auto& [key, contact] : this->optiVariables.contacts)
         {
             auto error
@@ -1256,12 +1257,7 @@ struct CentroidalMPC::Impl
                                                 corner.force(Sl(), i)(2)));
                 }
             }
-        }
-
-	// set the stability constraints
-        casadi::MX averageForce;
-        for (const auto& [key, contact] : this->optiVariables.contacts)
-        {
+            
             averageForce = casadi::MX::vertcat(
                 {contact.isEnabled * contact.corners[0].force(0, Sl()) / contact.corners.size(),
                  contact.isEnabled * contact.corners[0].force(1, Sl()) / contact.corners.size(),
@@ -1274,7 +1270,9 @@ struct CentroidalMPC::Impl
                      contact.isEnabled * contact.corners[i].force(2, Sl())
                          / contact.corners.size()});
             }
+            
         }
+
 
         if (this->stableConstants.enable_stability)
         {

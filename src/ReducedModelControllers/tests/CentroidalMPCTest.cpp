@@ -91,11 +91,11 @@ TEST_CASE("CentroidalMPC")
 
     std::shared_ptr<IParametersHandler> handler = std::make_shared<StdImplementation>();
     handler->setParameter("sampling_time", dT);
-    handler->setParameter("time_horizon", 1s + 200ms);
+    handler->setParameter("time_horizon", 1000ms);
     handler->setParameter("number_of_maximum_contacts", 2);
     handler->setParameter("number_of_slices", 1);
     handler->setParameter("static_friction_coefficient", 0.33);
-    handler->setParameter("solver_verbosity", 0);
+    handler->setParameter("solver_verbosity", 1);
     handler->setParameter("solver_name", "ipopt");
     handler->setParameter("linear_solver", "mumps");
     handler->setParameter("is_warm_start_enabled", true);
@@ -123,7 +123,7 @@ TEST_CASE("CentroidalMPC")
     handler->setGroup("CONTACT_0", contact0Handler);
     handler->setGroup("CONTACT_1", contact1Handler);
 
-    handler->setParameter("com_weight", std::vector<double>{1, 1, 200});
+    handler->setParameter("com_weight", std::vector<double>{1, 1, 2000});
     handler->setParameter("contact_position_weight", 2e2);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
     handler->setParameter("angular_momentum_weight", 1e2);
@@ -140,7 +140,7 @@ TEST_CASE("CentroidalMPC")
     
     // stability specific parameters
     handler->setParameter("enable_stability_cstr", true);
-    handler->setParameter("angular_momentum_norm_limit", 0.5);
+    handler->setParameter("angular_momentum_norm_limit", 10.0);
     handler->setParameter("adaptive_feedback_k1", 1.0);
     handler->setParameter("adaptive_feedback_k2", 10.0);
 
