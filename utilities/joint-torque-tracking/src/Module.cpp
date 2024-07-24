@@ -115,6 +115,7 @@ bool Module::configure(yarp::os::ResourceFinder& rf)
         log()->error("[Module::configure] Unable to find the parameter 'name'.");
         return false;
     }
+    this->setName(name.c_str());
 
     if (!parametersHandler->getParameter("sampling_time", m_dT))
     {
@@ -209,12 +210,13 @@ bool Module::configure(yarp::os::ResourceFinder& rf)
     m_initTrajectoryTime = yarp::os::Time::now();
 
     // switch the torque control mode
-    if (!m_robotControl.setControlMode(RobotInterface::ControlMode::Torque))
+    if (!m_robotControl.setControlMode(RobotInterface::IRobotControl::ControlMode::Torque))
     {
         log()->error("[Module::generateNewTrajectory] Unable to switch to torque control mode.");
         return false;
     }
 
+    log()->info("[Module::configure] Module configured.");
 
     return true;
 }
@@ -252,7 +254,7 @@ bool Module::updateModule()
 
     m_sensorBridge.getJointPositions(m_currentJointPos);
 
-    if (yarp::os::Time::now() - m_initTrajectoryTime > m_spline.getFinalTime())
+    if (yarp::os::Time::now() - m_initTrajectoryTime > std::chrono::duration<double>(m_timeKnots.back()).count() + 2)
     {
         if (!generateNewTrajectory())
         {
@@ -265,14 +267,14 @@ bool Module::updateModule()
 
     // PID controller for position to generate desired torque
 
-    m_integral += positionError * m_dT;
-    double derivative = (positionError - m_previousError) / m_dT;
+    m_integral += positionError * std::chrono::duration<double>(m_dT).count();
+    double derivative = (positionError - m_previousError) / std::chrono::duration<double>(m_dT).count();
     double desiredTorque = m_kp * positionError + m_ki * m_integral + m_kd * derivative;
     m_previousError = positionError;
 
     // set the reference
     if (!m_robotControl.setReferences(Eigen::VectorXd::Constant(1, desiredTorque),
-                                      RobotInterface::ControlMode::Torque,
+                                      RobotInterface::IRobotControl::ControlMode::Torque,
                                       m_currentJointPos))
     {
         log()->error("[Module::updateModule] Unable to set the reference.");
