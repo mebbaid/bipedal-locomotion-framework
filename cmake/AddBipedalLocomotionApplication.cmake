@@ -26,8 +26,13 @@ function(add_bipedal_locomotion_application)
   set(link_libraries ${${prefix}_LINK_LIBRARIES})
   set(subdirectories ${${prefix}_SUBDIRECTORIES})
 
+  message(STATUS "Creating target application ${name}.")
+  message(STATUS "Sources: ${sources}")
+  message(STATUS "Headers: ${headers}")
+
   # add an executable to the project using the specified source files.
   add_executable(${name} ${sources} ${headers})
+
 
   # Add C++17 features
   target_compile_features(${name} PRIVATE cxx_std_17)
