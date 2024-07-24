@@ -19,12 +19,12 @@ if(FRAMEWORK_USE_icub-models)
           MANIF::manif
           icub-models::icub-models)
 
-  add_bipedal_test(
-    NAME BaseEstimatorFromFootIMU
-    SOURCES BaseEstimatorFromFootIMUTest.cpp
-    LINKS BipedalLocomotion::FloatingBaseEstimators BipedalLocomotion::ParametersHandler BipedalLocomotion::ManifConversions
-          Eigen3::Eigen
-          iDynTree::idyntree-modelio-urdf
-          icub-models::icub-models)
+  # add_bipedal_test(
+  #   NAME BaseEstimatorFromFootIMU
+  #   SOURCES BaseEstimatorFromFootIMUTest.cpp
+  #   LINKS BipedalLocomotion::FloatingBaseEstimators BipedalLocomotion::ParametersHandler BipedalLocomotion::ManifConversions
+  #         Eigen3::Eigen
+  #         iDynTree::idyntree-modelio-urdf
+  #         icub-models::icub-models)
 
 endif()

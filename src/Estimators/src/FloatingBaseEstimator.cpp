@@ -363,6 +363,7 @@ bool FloatingBaseEstimator::setKinematics(const Eigen::VectorXd& encoders,
     if ((encoders.size() != encoderSpeeds.size())
         || (encoders.size() != modelComputations().nrJoints()))
     {
+        log()->warn("[FloatingBaseEstimator::setKinematics] sizes of encoders {} , encoderspeeds {} , model nrJoints {}", encoders.size(), encoderSpeeds.size(), modelComputations().nrJoints() );
         log()->warn("[FloatingBaseEstimator::setKinematics] "
                     "kinematic measurements size mismatch.");
         return false;
