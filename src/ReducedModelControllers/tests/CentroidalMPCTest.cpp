@@ -124,9 +124,9 @@ TEST_CASE("CentroidalMPC")
     handler->setGroup("CONTACT_1", contact1Handler);
 
     handler->setParameter("com_weight", std::vector<double>{1, 1, 2000});
-    handler->setParameter("contact_position_weight", 2e2);
+    handler->setParameter("contact_position_weight", 1e3);
     handler->setParameter("force_rate_of_change_weight", std::vector<double>{10, 10, 10});
-    handler->setParameter("angular_momentum_weight", 1e2);
+    handler->setParameter("angular_momentum_weight", 1e3);
     handler->setParameter("contact_force_symmetry_weight", 10.0);
     handler->setParameter("force_weight", 10.0);
 
@@ -139,10 +139,10 @@ TEST_CASE("CentroidalMPC")
     handler->setParameter("cbf_multiplier", 0.5);
 
     // stability specific parameters
-    handler->setParameter("enable_stability_cstr", false);
+    handler->setParameter("enable_stability_cstr", true);
     handler->setParameter("angular_momentum_norm_limit", 10.0);
-    handler->setParameter("adaptive_feedback_k1", 1.0);
-    handler->setParameter("adaptive_feedback_k2", 10.0);
+    handler->setParameter("adaptive_feedback_k1", 5.0);
+    handler->setParameter("adaptive_feedback_k2", 5.0);
 
     CentroidalMPC mpc;
 
