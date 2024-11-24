@@ -97,8 +97,8 @@ TEST_CASE("CentroidalMPC")
     handler->setParameter("static_friction_coefficient", 0.33);
     handler->setParameter("solver_verbosity", 1);
     handler->setParameter("solver_name", "ipopt");
-    handler->setParameter("linear_solver", "mumps");
-    handler->setParameter("is_warm_start_enabled", true);
+    handler->setParameter("linear_solver", "ma27");
+    handler->setParameter("is_warm_start_enabled", false);
 
     auto contact0Handler = std::make_shared<StdImplementation>();
     contact0Handler->setParameter("number_of_corners", 4);

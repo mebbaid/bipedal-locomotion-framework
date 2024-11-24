@@ -644,8 +644,8 @@ struct CentroidalMPC::Impl
         ddcom = gravity + externalForce / mass;
         angularMomentumDerivative = externalTorque;
 
-        thetaHatDerivative = -this->stableConstants.k1 * (com - comReference)
-                             + dcom; // thetaHatDot = -z_2 ,  assuming accelaration ref being zero
+        thetaHatDerivative = this->stableConstants.k1 * (com - comReference)
+                             - dcom; // thetaHatDot = z_2 ,  assuming accelaration ref being zero
 
         std::vector<casadi::MX> input;
         input.push_back(comReference);
@@ -1249,10 +1249,10 @@ struct CentroidalMPC::Impl
 
                     // limit on the normal force
                     this->opti.subject_to(
-                        0 <= casadi::MX::mtimes(casadi::MX::reshape(contact.orientation(Sl(), i),
-                                                                    3,
-                                                                    3),
-                                                corner.force(Sl(), i)(2)));
+     0 <= casadi::MX::mtimes(casadi::MX::reshape(contact.orientation(Sl(), i),
+                                                 3,
+                                                 3),
+                             corner.force(Sl(), i))(2));
                 }
             }
 
