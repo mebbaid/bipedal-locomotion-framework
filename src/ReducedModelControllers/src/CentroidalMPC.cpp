@@ -641,6 +641,10 @@ struct CentroidalMPC::Impl
         casadi::DM gravity = casadi::DM::zeros(3);
         gravity(2) = -BipedalLocomotion::Math::StandardAccelerationOfGravitation;
 
+        casadi::DM payload_location = casadi::DM::zeros(3);
+        payload_location(2) = -0.1;
+        payload_location(0) = 0.5;
+
         ddcom = gravity + externalForce / mass;
         angularMomentumDerivative = externalTorque;
 
@@ -679,6 +683,10 @@ struct CentroidalMPC::Impl
                 input.push_back(corner.isEnabled);
             }
         }
+
+
+        angularMomentumDerivative += casadi::MX::cross(payload_location,
+                                   thetaHat);
 
         const double dT = chronoToSeconds(this->optiSettings.samplingTime);
 
