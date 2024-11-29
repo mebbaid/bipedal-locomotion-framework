@@ -803,8 +803,7 @@ struct CentroidalMPC::Impl
         // prepare the controller inputs struct
         // The order matches the one required by createController
 
-        this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, //
-                                                               this->optiSettings.horizon));
+        this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size));
         this->controllerInputs.thetaHatCurrent = &this->vectorizedOptiInputs.back();
 
         this->vectorizedOptiInputs.push_back(casadi::DM::zeros(vector3Size, //
